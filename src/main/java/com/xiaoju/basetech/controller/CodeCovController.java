@@ -37,9 +37,11 @@ public class CodeCovController {
             unitCoverRequest.setType(1);
             coverBaseWithOutUUidRequest.setType(1);
         }
+        //替换一下baseVersion，换成develop
         if (Objects.isNull(coverBaseWithOutUUidRequest.getBaseVersion())){
-            unitCoverRequest.setBaseVersion("master");
+            unitCoverRequest.setBaseVersion("develop");
         }
+
         BeanUtils.copyProperties(coverBaseWithOutUUidRequest,unitCoverRequest);
         codeCovService.triggerUnitCov(unitCoverRequest);
         return HttpResult.build(200,uuid);
