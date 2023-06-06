@@ -23,11 +23,11 @@ public class CodeCompilerExecutor {
 
     public void compileCode(CoverageReportEntity coverageReport) {
         String logFile = coverageReport.getLogFile().replace(LocalIpUtils.getTomcatBaseUrl()+"logs/", LOG_PATH);
-//        String[] compileCmd = new String[]{"cd " + coverageReport.getNowLocalPath() + "&&mvn clean compile " +
+        String[] compileCmd = new String[]{"cd " + coverageReport.getNowLocalPath() + "&&mvn clean compile " +
 //                (StringUtils.isEmpty(coverageReport.getEnvType()) ? "" : "-P=" + coverageReport.getEnvType()) + ">>" + logFile};
 
 
-        String[] compileCmd = new String[]{"cd " + coverageReport.getNowLocalPath() + "&&mvn clean test " +
+//        String[] compileCmd = new String[]{"cd " + coverageReport.getNowLocalPath() + "&&mvn clean test " +
                 (StringUtils.isEmpty(coverageReport.getEnvType()) ? "" : "-P=" + coverageReport.getEnvType()) + ">>" + logFile};
 
 
