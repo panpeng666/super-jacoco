@@ -23,7 +23,7 @@ public interface CodeCovService {
      * @author panpeng
      * @date 2023/6/8 11:08
     */
-    void checkJobDone(String uuid) throws Exception;
+    void checkJobDone(String uuid,String url,String userMail) throws Exception;
 
 
     /**

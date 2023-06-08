@@ -752,7 +752,7 @@ public class CodeCovServiceImpl implements CodeCovService {
      * @date 2023/6/8 11:44
     */
     @Override
-    public void checkJobDone(String uuid) throws Exception {
+    public void checkJobDone(String uuid,String url,String userMail) throws Exception {
         log.info("定时轮询检测任务启动，检测uuid为"+uuid);
         int count = 15;
         CoverResult coverResult = new CoverResult();
@@ -774,7 +774,7 @@ public class CodeCovServiceImpl implements CodeCovService {
             String baseVersion  = cr.getBaseVersion();
             String nowVersion = cr.getNowVersion();
             Double lineCoverage = coverResult.getLineCoverage();
-            String msg = "分支"+nowVersion+"对比分支"+baseVersion+"的增量代码单测的行覆盖率为"+lineCoverage+"；具体报告可见"+reportUrl;
+            String msg = "用户"+userMail+"的mr请求\\n"+url+"\\n单测覆盖率完成\\n"+"\\n增量代码单测的行覆盖率为"+lineCoverage+"；\\n具体报告可见"+reportUrl;
             robotUtils.robotReport(msg,robotUrl);
         }else if( coverResult.getCoverStatus()==-1) {
             String logUrl = coverResult.toString();

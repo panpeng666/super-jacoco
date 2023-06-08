@@ -3,6 +3,7 @@ package com.xiaoju.basetech.controller;
 
 import com.xiaoju.basetech.entity.*;
 import com.xiaoju.basetech.service.CodeCovService;
+import com.xiaoju.basetech.util.RobotUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
@@ -53,11 +54,13 @@ public class CodeCovController {
             unitCoverRequest.setBaseVersion("develop");
         }
         BeanUtils.copyProperties(coverBaseWithOutUUidRequest,unitCoverRequest);
+        String url = coverBaseWithOutUUidRequest.getUrl();
+        String userMail = coverBaseWithOutUUidRequest.getUserMail();
         codeCovService.triggerUnitCov(unitCoverRequest);
         //启动一个轮询检查，15min后超时
         new Thread(()->{
             try {
-                codeCovService.checkJobDone(uuid);
+                codeCovService.checkJobDone(uuid,url,userMail);
             } catch (Exception e) {
                 e.printStackTrace();
             }

@@ -43,4 +43,8 @@ public class CoverBaseWithOutUUidRequest {
 
     private String address;
     private int port;
+
+    private String url;
+    private String userMail;
+
 }
