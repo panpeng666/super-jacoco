@@ -20,4 +20,15 @@ public class CoverResult {
     private String errMsg;
     private String logFile;
 
+    @Override
+    public String toString() {
+        return "CoverResult{" +
+                "coverStatus=" + coverStatus +
+                ", reportUrl='" + reportUrl + '\'' +
+                ", lineCoverage=" + lineCoverage +
+                ", branchCoverage=" + branchCoverage +
+                ", errMsg='" + errMsg + '\'' +
+                ", logFile='" + logFile + '\'' +
+                '}';
+    }
 }

@@ -22,6 +22,15 @@ public class CodeCovController {
     @Autowired
     private CodeCovService codeCovService;
 
+    //todo 需要实现的功能
+    /**
+     * 1。需要有一个controller去接受rust的请求，来触发启动增量单测检查 done
+     * 2。触发完成后，需要走单测覆盖率流程 done
+     * 3。需要自动生成这个uuid，并且每分钟轮询这个线程是否完成 done
+     * 4。需要实现一个机器人通知的server（可以抄mqtt的） done
+     * 5。最好对用户信息进行记录
+     */
+
     /**
      * 触发单元测试diff覆盖率，不入参uuid
      *
@@ -30,18 +39,29 @@ public class CodeCovController {
      */
     @PostMapping(value = "/triggerUnitCoverTest")
     public HttpResult<Boolean> triggerUnitCoverTest(@RequestBody @Validated CoverBaseWithOutUUidRequest coverBaseWithOutUUidRequest) {
+        //uuid由时间戳生成
         String uuid = String.valueOf(System.currentTimeMillis());
         UnitCoverRequest unitCoverRequest = new UnitCoverRequest();
         unitCoverRequest.setUuid(uuid);
+        //如果type为null设置成全量执行      * 1、全量；2、增量
         if (Objects.isNull(coverBaseWithOutUUidRequest.getType())){
             unitCoverRequest.setType(1);
             coverBaseWithOutUUidRequest.setType(1);
         }
+        //如果对比分支为null，写成develop
         if (Objects.isNull(coverBaseWithOutUUidRequest.getBaseVersion())){
             unitCoverRequest.setBaseVersion("develop");
         }
         BeanUtils.copyProperties(coverBaseWithOutUUidRequest,unitCoverRequest);
         codeCovService.triggerUnitCov(unitCoverRequest);
+        //启动一个轮询检查，15min后超时
+        new Thread(()->{
+            try {
+                codeCovService.checkJobDone(uuid);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }).start();
         return HttpResult.build(200,uuid);
     }
 
@@ -83,18 +103,6 @@ public class CodeCovController {
 
     }
 
-    /**
-     *
-     * @param envCoverRequest
-     * @return
-     */
-    @RequestMapping(value = "/triggerEnvCovTest", method = RequestMethod.POST, produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
-    @ResponseBody
-    public HttpResult<Boolean> triggerEnvCovTest(@RequestBody @Validated EnvCoverRequest envCoverRequest) {
-        codeCovService.triggerEnvCovTest(envCoverRequest);
-        return HttpResult.success();
-
-    }
 
     /**
      * 获取功能测试增量代码覆盖率
@@ -121,4 +129,22 @@ public class CodeCovController {
         return HttpResult.success(codeCovService.getLocalCoverResult(localHostRequestParam));
 
     }
+
+
+
+
+    /**
+     *
+     * @param envCoverRequest
+     * @return
+     */
+    @RequestMapping(value = "/triggerEnvCovTest", method = RequestMethod.POST, produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
+    @ResponseBody
+    public HttpResult<Boolean> triggerEnvCovTest(@RequestBody @Validated EnvCoverRequest envCoverRequest) {
+        codeCovService.triggerEnvCovTest(envCoverRequest);
+        return HttpResult.success();
+
+    }
+
+
 }

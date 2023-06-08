@@ -10,6 +10,7 @@ import com.xiaoju.basetech.util.*;
 import jodd.io.FileUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.beanutils.BeanUtils;
+import org.apache.tomcat.jni.Time;
 import org.jacoco.core.tools.ExecFileLoader;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -23,6 +24,7 @@ import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Timer;
 
 import static com.xiaoju.basetech.util.Constants.*;
 
@@ -65,6 +67,12 @@ public class CodeCovServiceImpl implements CodeCovService {
     @Autowired
     private ReportParser reportParser;
 
+    @Autowired
+    private RobotUtils robotUtils;
+
+    //mr群机器人地址
+    private  String robotUrl = "https://hi-open.zhipin.com/open-apis/bot/hook/c1855c2ba5da4f2bb35097c7deb2e45a";
+
     /**
      * 新增单元覆盖率增量覆盖率任务
      *
@@ -74,7 +82,6 @@ public class CodeCovServiceImpl implements CodeCovService {
     public void triggerUnitCov(UnitCoverRequest unitCoverRequest) {
         CoverageReportEntity history = coverageReportDao.queryCoverageReportByUuid(unitCoverRequest.getUuid());
         double x =10.1;
-        System.out.println();
 
         //先对uuid查库判断是否存在，存在的时候报错
 
@@ -737,6 +744,47 @@ public class CodeCovServiceImpl implements CodeCovService {
             throw new RuntimeException(e.getMessage());
         }
     }
+    /**
+     * @Description: 定时轮询uuid的报告是否完成
+     * @param: uuid
+     * @return * @return void
+     * @author panpeng
+     * @date 2023/6/8 11:44
+    */
+    @Override
+    public void checkJobDone(String uuid) throws Exception {
+        log.info("定时轮询检测任务启动，检测uuid为"+uuid);
+        int count = 15;
+        CoverResult coverResult = new CoverResult();
+        while (coverResult.getCoverStatus()==0){
+            Thread.sleep(60000);
+            coverResult = getCoverResult(uuid);
+            count--;
+            if (count<=0){
+                log.info("uuid为"+uuid+"的轮询任务已经超时，结束轮询任务");
+                return;
+            }
+        }
+        //发送机器人通知
+        if (coverResult.getCoverStatus()==1){
+            log.info("uuid为"+uuid+"的报告生成成功，开始发送机器人消息至mr群");
+
+            String reportUrl = coverResult.getReportUrl();
+            CoverageReportEntity cr = coverageReportDao.queryCoverageReportByUuid(uuid);
+            String baseVersion  = cr.getBaseVersion();
+            String nowVersion = cr.getNowVersion();
+            Double lineCoverage = coverResult.getLineCoverage();
+            String msg = "分支"+nowVersion+"对比分支"+baseVersion+"的增量代码单测的行覆盖率为"+lineCoverage+"；具体报告可见"+reportUrl;
+            robotUtils.robotReport(msg,robotUrl);
+        }else if( coverResult.getCoverStatus()==-1) {
+            String logUrl = coverResult.toString();
+            String msg = "生成增量代码覆盖率失败，请检查日志"+logUrl;
+            robotUtils.robotReport(msg,robotUrl);
+        }
+
+    }
+
+
 
     private void mergeExec(List<String> ExecFiles, String NewFileName) {
         ExecFileLoader execFileLoader = new ExecFileLoader();

@@ -15,6 +15,17 @@ public interface CodeCovService {
      */
     void triggerUnitCov(UnitCoverRequest unitCoverRequest);
 
+
+    /**
+     * @Description: 一个检测单测是否完成的轮训任务
+     * @param: uuid
+     * @return * @return void
+     * @author panpeng
+     * @date 2023/6/8 11:08
+    */
+    void checkJobDone(String uuid) throws Exception;
+
+
     /**
      * 获取覆盖率结果，单元测试和功能测试统一用这个接口
      *
