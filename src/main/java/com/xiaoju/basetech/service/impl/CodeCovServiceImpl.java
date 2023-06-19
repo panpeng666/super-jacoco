@@ -71,8 +71,13 @@ public class CodeCovServiceImpl implements CodeCovService {
     private RobotUtils robotUtils;
 
     //mr群机器人地址
-    private  String robotUrl = "https://hi-open.zhipin.com/open-apis/bot/hook/c1855c2ba5da4f2bb35097c7deb2e45a";
-
+   //
+    //
+    //
+    //
+    // private  String robotUrl = "https://hi-open.zhipin.com/open-apis/bot/hook/c1855c2ba5da4f2bb35097c7deb2e45a";
+    //测试机器人地址
+    private String robotUrl = "https://hi-open.zhipin.com/open-apis/bot/hook/49fb1473329546b1a77b3ab731c0b279";
     /**
      * 新增单元覆盖率增量覆盖率任务
      *
@@ -754,7 +759,7 @@ public class CodeCovServiceImpl implements CodeCovService {
     @Override
     public void checkJobDone(String uuid,String url,String userMail) throws Exception {
         log.info("定时轮询检测任务启动，检测uuid为"+uuid);
-        int count = 15;
+        int count = 60;
         CoverResult coverResult = new CoverResult();
         while (coverResult.getCoverStatus()==0){
             Thread.sleep(60000);

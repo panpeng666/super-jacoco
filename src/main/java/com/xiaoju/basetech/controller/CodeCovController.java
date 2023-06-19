@@ -4,6 +4,7 @@ package com.xiaoju.basetech.controller;
 import com.xiaoju.basetech.entity.*;
 import com.xiaoju.basetech.service.CodeCovService;
 import com.xiaoju.basetech.util.RobotUtils;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
@@ -18,6 +19,7 @@ import java.util.Objects;
  */
 @RestController
 @RequestMapping(value = "/cov")
+@Slf4j
 public class CodeCovController {
 
     @Autowired
@@ -40,6 +42,13 @@ public class CodeCovController {
      */
     @PostMapping(value = "/triggerUnitCoverTest")
     public HttpResult<Boolean> triggerUnitCoverTest(@RequestBody @Validated CoverBaseWithOutUUidRequest coverBaseWithOutUUidRequest) {
+        //加一个rd21组判断，不然没权限直接gg
+        String giturl = coverBaseWithOutUUidRequest.getGitUrl();
+        if (!giturl.contains("git.kanzhun-inc.com/rd21/")){
+            log.info("为非后端代码url，不进行增量代码覆盖率检查"+ coverBaseWithOutUUidRequest.toString());
+            return HttpResult.build(500,giturl+"为非后端代码url，不进行增量代码覆盖率检查");
+        }
+
         //uuid由时间戳生成
         String uuid = String.valueOf(System.currentTimeMillis());
         UnitCoverRequest unitCoverRequest = new UnitCoverRequest();
@@ -53,11 +62,14 @@ public class CodeCovController {
         if (Objects.isNull(coverBaseWithOutUUidRequest.getBaseVersion())){
             unitCoverRequest.setBaseVersion("develop");
         }
+        //入参全部打印到日志
+        log.info("uuid=" +uuid+ "开始执行增量代码检查，入参为"+ coverBaseWithOutUUidRequest.toString());
+
         BeanUtils.copyProperties(coverBaseWithOutUUidRequest,unitCoverRequest);
         String url = coverBaseWithOutUUidRequest.getUrl();
         String userMail = coverBaseWithOutUUidRequest.getUserMail();
         codeCovService.triggerUnitCov(unitCoverRequest);
-        //启动一个轮询检查，15min后超时
+        //启动一个轮询检查，60min后超时
         new Thread(()->{
             try {
                 codeCovService.checkJobDone(uuid,url,userMail);

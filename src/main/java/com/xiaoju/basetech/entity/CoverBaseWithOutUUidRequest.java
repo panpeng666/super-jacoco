@@ -47,4 +47,19 @@ public class CoverBaseWithOutUUidRequest {
     private String url;
     private String userMail;
 
+    @Override
+    public String toString() {
+        return "CoverBaseWithOutUUidRequest{" +
+                "envType='" + envType + '\'' +
+                ", gitUrl='" + gitUrl + '\'' +
+                ", baseVersion='" + baseVersion + '\'' +
+                ", nowVersion='" + nowVersion + '\'' +
+                ", subModule='" + subModule + '\'' +
+                ", type=" + type +
+                ", address='" + address + '\'' +
+                ", port=" + port +
+                ", url='" + url + '\'' +
+                ", userMail='" + userMail + '\'' +
+                '}';
+    }
 }

@@ -1,7 +1,7 @@
 package com.xiaoju.basetech.util;
 
 /**
- * @description:
+ * @description: 修改目标代码的pom文件
  * @author: gaoweiwei_v
  * @time: 2019/8/27 4:17 PM
  */
@@ -88,8 +88,8 @@ public class MavenModuleUtil {
                     "            <plugin>\n" +
                     "                <groupId>org.jacoco</groupId>\n" +
                     "                <artifactId>jacoco-maven-plugin</artifactId>\n" +
-                    "                <version>1.0.2-SNAPSHOT</version>\n" +
-//                    "                <version>0.8.1</version>\n" +
+//                    "                <version>1.0.2-SNAPSHOT</version>\n" +
+                    "                <version>0.8.1</version>\n" +
                     "                <executions>\n" +
                     "                    <execution>\n" +
                     "                        <id>report-aggregate</id>\n" +
