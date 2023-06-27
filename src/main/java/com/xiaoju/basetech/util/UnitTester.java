@@ -38,14 +38,14 @@ public class UnitTester {
         //版本号以[-SNAPSHOT]结尾，每次构建都会去远程仓库检查最新版本。
  //       String[] cmd = new String[]{unittestCmd + " -Dmaven.test.skip=false org.jacoco:jacoco-maven-plugin:1.0.2:prepare-agent "
 //               String[] cmd = new String[]{unittestCmd + " -Dmaven.test.skip=false org.jacoco:jacoco-maven-plugin:1.0.2-SNAPSHOT:prepare-agent "
-        String[] cmd = new String[]{unittestCmd + " -Dmaven.test.skip=false org.jacoco:jacoco-maven-plugin:0.8.1:prepare-agent "
+        String[] cmd = new String[]{unittestCmd + " -Dmaven.test.skip=false org.jacoco:jacoco-maven-plugin:1.0.2-SNAPSHOT:prepare-agent "
 //                + "compile test-compile org.apache.maven.plugins:maven-surefire-plugin:2.22.1:test "
 
                        // todo  特喵的邮箱的代码在compile下就是不执行test，导致覆盖率一直是0，先写死成test试试
 
                        + "test org.apache.maven.plugins:maven-surefire-plugin:2.22.1:test "
 
-                       + "org.apache.maven.plugins:maven-jar-plugin:2.4:jar org.jacoco:jacoco-maven-plugin:0.8.1:report -Dmaven.test.failure.ignore=true -Dfile.encoding=UTF-8 "
+                       + "org.apache.maven.plugins:maven-jar-plugin:2.4:jar org.jacoco:jacoco-maven-plugin:0.8.10:report -Dmaven.test.failure.ignore=true -Dfile.encoding=UTF-8 "
                 + (StringUtils.isEmpty(coverageReport.getDiffMethod()) ? "" : ("-Djacoco.diffFile=" + coverageReport.getDiffMethod()))
                 + ">" + logFile};
         // 超时时间设置为一小时,

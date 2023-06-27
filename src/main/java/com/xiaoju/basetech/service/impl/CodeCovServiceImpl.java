@@ -16,6 +16,7 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.select.Elements;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
@@ -41,6 +42,8 @@ public class CodeCovServiceImpl implements CodeCovService {
     private static final String COV_PATH = System.getProperty("user.home") + "/cover/";
     //普通命令超时时间是10分钟,600000L 143
     private static final Long CMD_TIMEOUT = 600000L;
+    @Value("${whitelist.names}")
+    private String[] whiteListNames;
 
     @Autowired
     private CoverageReportDao coverageReportDao;
@@ -770,21 +773,41 @@ public class CodeCovServiceImpl implements CodeCovService {
                 return;
             }
         }
+        //todo 如果代码已经合并，git diff的数据为null时，此时应该不通知（先自己加判断，后续还是改入参会比较好）
+        CoverageReportEntity cr = coverageReportDao.queryCoverageReportByUuid(uuid);
+        if (cr.getErrMsg().equals("没有增量代码")){
+            log.info(uuid+"没有增量代码");
+            return;
+        }
+
         //发送机器人通知
         if (coverResult.getCoverStatus()==1){
             log.info("uuid为"+uuid+"的报告生成成功，开始发送机器人消息至mr群");
 
             String reportUrl = coverResult.getReportUrl();
-            CoverageReportEntity cr = coverageReportDao.queryCoverageReportByUuid(uuid);
+            cr = coverageReportDao.queryCoverageReportByUuid(uuid);
             String baseVersion  = cr.getBaseVersion();
             String nowVersion = cr.getNowVersion();
             Double lineCoverage = coverResult.getLineCoverage();
             String msg = "用户"+userMail+"的mr请求\\n"+url+"\\n单测覆盖率完成\\n"+"\\n增量代码单测的行覆盖率为"+lineCoverage+"；\\n具体报告可见"+reportUrl;
+            //先加一个搜索的判断
+
+            if(cr.getGitUrl().contains("zhipin-cockatiel-store") || cr.getGitUrl().contains("zhipin-cockatiel-search")){
+                log.info("搜索团队的应用，对搜索平台进行机器人通知");
+                robotUtils.robotReport(msg,"https://hi-open.zhipin.com/open-apis/bot/hook/61b1f3b519e34c7e9ccb84e2d03c4e0e");
+            }else {
             robotUtils.robotReport(msg,robotUrl);
+            }
         }else if( coverResult.getCoverStatus()==-1) {
             String logUrl = coverResult.toString();
             String msg = "生成增量代码覆盖率失败，请检查日志"+logUrl;
-            robotUtils.robotReport(msg,robotUrl);
+            cr = coverageReportDao.queryCoverageReportByUuid(uuid);
+            if(cr.getGitUrl().contains("zhipin-cockatiel-store") || cr.getGitUrl().contains("zhipin-cockatiel-search")){
+                log.info("搜索团队的应用，对搜索平台进行机器人通知");
+                robotUtils.robotReport(msg,"https://hi-open.zhipin.com/open-apis/bot/hook/61b1f3b519e34c7e9ccb84e2d03c4e0e");
+            }else {
+                robotUtils.robotReport(msg, robotUrl);
+            }
         }
 
     }
@@ -806,4 +829,16 @@ public class CodeCovServiceImpl implements CodeCovService {
             log.error("ExecFiles 保存失败 errorMessege is {}", e.fillInStackTrace());
         }
     }
+
+
+    @Override
+    public Boolean whiteList(String gitName){
+        for (String whiteListName : whiteListNames) {
+            if (gitName.contains(whiteListName)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
 }

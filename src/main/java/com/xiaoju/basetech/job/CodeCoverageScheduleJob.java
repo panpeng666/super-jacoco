@@ -55,7 +55,7 @@ public class CodeCoverageScheduleJob {
         // 1. 查询需要diff的数据，对初始数据 0进行判断
         //todo 这里居然限制limit1 ，如果第一个执行不了永远都不能执行后面的了
         List<CoverageReportEntity> resList = coverageReportDao.queryCoverByStatus(Constants.JobStatus.INITIAL.val(),
-                Constants.CoverageFrom.UNIT.val(), 5);
+                Constants.CoverageFrom.UNIT.val(), 1);
         log.info("查询需要diff的数据{}条", resList.size());
         resList.forEach(o -> {
 
@@ -64,11 +64,13 @@ public class CodeCoverageScheduleJob {
                         Constants.JobStatus.WAITING.val(), o.getUuid());
                 if (num > 0) {
                     //有未执行的代码下载任务，开始执行
+                    log.info("有未执行的代码下载任务，开始执行"+o.getUuid());
                     executor.execute(() -> codeCovService.calculateUnitCover(o));
                 } else {
                     log.info("others execute task :{}", o.getUuid());
                 }
             } catch (Exception e) {
+                log.info("定时任务轮询失败");
                 coverageReportDao.casUpdateByStatus(Constants.JobStatus.WAITING.val(),
                         Constants.JobStatus.INITIAL.val(), o.getUuid());
             }

@@ -86,4 +86,15 @@ public interface CodeCovService {
      */
     CoverResult getLocalCoverResult(LocalHostRequestParam localHostRequestParam);
 
+    /**
+     * @Description:  检查代码工程是否在白名单内
+     * @param: gitName
+     * @return * @return java.lang.Boolean
+     * @author panpeng
+     * @date 2023/6/25 16:10
+    */
+
+    Boolean whiteList(String gitName);
+
+
 }

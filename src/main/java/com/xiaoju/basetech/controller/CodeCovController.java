@@ -49,6 +49,13 @@ public class CodeCovController {
             return HttpResult.build(500,giturl+"为非后端代码url，不进行增量代码覆盖率检查");
         }
 
+
+        //加一个白名单，只对白名单进行单测检查
+        if (!codeCovService.whiteList(giturl)){
+            log.info("为非白名单代码url，不进行增量代码覆盖率检查"+ coverBaseWithOutUUidRequest.toString());
+            return HttpResult.build(500,giturl+"为非白名单代码url，不进行增量代码覆盖率检查");
+
+        }
         //uuid由时间戳生成
         String uuid = String.valueOf(System.currentTimeMillis());
         UnitCoverRequest unitCoverRequest = new UnitCoverRequest();
