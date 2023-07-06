@@ -18,6 +18,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.dom4j.Document;
 import org.dom4j.Element;
 import org.dom4j.io.SAXReader;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
@@ -25,8 +26,16 @@ import org.springframework.util.StringUtils;
 @Slf4j
 public class MavenModuleUtil {
 
+    @Value("${user.dubbo.server}")
+    private String[] userDubboServer;
+
     public void addMavenModule(CoverageReportEntity coverageReport) {
         try {
+            // 这里需要加上用户中心的判断，把dubbo的路径配置进行修改
+            if (checkDubbo(coverageReport.getGitUrl())){
+                changeDubboConfig(coverageReport);
+            }
+
             String pomPath = coverageReport.getNowLocalPath() + "/pom.xml";
             File pomFile = new File(pomPath);
             if (!pomFile.exists()) {
@@ -122,6 +131,93 @@ public class MavenModuleUtil {
             log.error("添加集成模块执行异常:{}", coverageReport.getUuid(), e);
             coverageReport.setErrMsg("添加集成模块执行异常:" + e.getMessage());
             coverageReport.setRequestStatus(Constants.JobStatus.FAILADDMODULE.val());
+        }
+    }
+
+    /**
+     * @Description: 检查这个应用是否为用户中心的dubbo服务，如果是的话，需要修改dubbo配置，防止影响qa环境
+     * @param: gitUrl
+     * @return * @return boolean
+     * @author panpeng
+     * @date 2023/7/6 16:27
+    */
+
+    private boolean checkDubbo(String gitUrl){
+        for (String name:userDubboServer){
+            if (gitUrl.contains(name)){
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * @Description: 修改dubbo配置
+     * @param:
+     * @return * @return void
+     * @author panpeng
+     * @date 2023/7/6 16:28
+    */
+    private void changeDubboConfig(CoverageReportEntity coverageReport){
+        String path = coverageReport.getNowLocalPath();
+        try {
+            log.info("开始修改dubbo配置");
+            if (coverageReport.getGitUrl().contains("zhipin-cockatiel-user")) {
+                String filePath = path + "/zhipin-cockatiel-user-server/src/main/resources/spring/cockatiel-user-server-provider.xml";
+                String oldLine = "group=\"dubbo/cockatiel\"/>";
+                String newLine = "                    group=\"dubbo/cockatiel_local\"/>";
+                replaceFileContent(filePath, oldLine, newLine);
+                oldLine = "group=\"${dubbo.cockatiel.user.group:dubbo/cockatiel/user}\"/>";
+                newLine = "                    group=\"${dubbo.cockatiel.user.group:dubbo/cockatiel/user_local}\"/>";
+                replaceFileContent(filePath, oldLine, newLine);
+
+            }
+            if (coverageReport.getGitUrl().contains("zhipin-cockatiel-login")) {
+                String filePath = path + "/login-server-facade-impl/src/main/resources/spring/cockatiel-user-login-provider.xml";
+                String oldLine = "group=\"${dubbo.cockatiel.user.group:dubbo/cockatiel/userLoginRegistry}\"/>";
+                String newLine = "                address=\"${zk_registry}\" group=\"${dubbo.cockatiel.user.group:dubbo/cockatiel/userLoginRegistry_local}\"/>";
+                replaceFileContent(filePath, oldLine, newLine);
+                oldLine = "group=\"dubbo/cockatiel\"/>";
+                newLine = "    <dubbo:registry id=\"cockatielLoginRegistry\" protocol=\"zookeeper\" address=\"${zk_registry}\" group=\"dubbo/cockatiel_local\"/>";
+                replaceFileContent(filePath, oldLine, newLine);
+            }
+        }catch (Exception e){
+            log.info("修改dubbo配置异常");
+        }
+    }
+
+    /**
+     * 替换文件中的指定行内容
+     *
+     * @param filePath 文件路径
+     * @param oldLine  需要替换的旧行内容
+     * @param newLine  替换后的新行内容
+     */
+    public  void replaceFileContent(String filePath, String oldLine, String newLine) {
+        try (BufferedReader reader = new BufferedReader(new FileReader(filePath));
+             BufferedWriter writer = new BufferedWriter(new FileWriter(filePath + ".tmp"))) {
+
+            String line;
+            while ((line = reader.readLine()) != null) {
+                // 判断当前行是否为需要替换的旧行内容
+                if (line.contains(oldLine)) {
+                    // 写入替换后的新行内容
+                    writer.write(newLine);
+                } else {
+                    // 保持原有内容
+                    writer.write(line);
+                }
+                writer.newLine();
+            }
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        // 删除原文件
+        if (new File(filePath).delete()) {
+            // 重命名临时文件为原文件名
+            new File(filePath + ".tmp").renameTo(new File(filePath));
         }
     }
 

@@ -28,7 +28,7 @@
         <appender-ref ref="STDOUT"/>
         <appender-ref ref="baselog"/>
     </root>
-    <logger name="com.xiaoju" level="DEBUG">
+    <logger name="com.xiaoju" level="info">
         <appender-ref ref="baselog"/>
     </logger>
 </configuration>

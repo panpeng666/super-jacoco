@@ -53,7 +53,6 @@ public class CodeCoverageScheduleJob {
     @Scheduled(fixedDelay = 10_000L, initialDelay = 10_000L)
     public void codeCloneJob() {
         // 1. 查询需要diff的数据，对初始数据 0进行判断
-        //todo 这里居然限制limit1 ，如果第一个执行不了永远都不能执行后面的了
         List<CoverageReportEntity> resList = coverageReportDao.queryCoverByStatus(Constants.JobStatus.INITIAL.val(),
                 Constants.CoverageFrom.UNIT.val(), 1);
         log.info("查询需要diff的数据{}条", resList.size());

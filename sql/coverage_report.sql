@@ -34,5 +34,24 @@ CREATE TABLE `diff_deploy_info` (
   KEY `id` (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=0 DEFAULT CHARSET=utf8 COMMENT='服务部署地址';
 
+-- todo 这里的数据库还需要好好设计一下
+CREATE TABLE `super-jacoco-info` (
+    `id` int(10) NOT NULL AUTO_INCREMENT,
+    `job_record_uuid` varchar(80) NOT NULL COMMENT '请求唯一标识码',
+    `url` varchar(80) NOT NULL COMMENT 'mr请求时候的地址',
+    `userMail` varchar(80) NOT NULL COMMENT '触发的用户邮箱',
+    `now_version` varchar(80) NOT NULL COMMENT '本次提交的commidId',
+    `base_version` varchar(80) NOT NULL COMMENT '比较的基准commitId',
+    `isReport` varchar(80) NOT NULL COMMENT '是否执行机器人汇报',
+    `request_status` int(10) NOT NULL COMMENT '请求执行状态,1=下载代码成功,2=生成diffmethod成功，3=生成报告成功,-1=执行出错',
+    `type` int(11) NOT NULL DEFAULT '0' COMMENT '2=增量代码覆盖率,1=全量覆盖率',
+    `log_file` varchar(255) NOT NULL DEFAULT '日志地址',
+    `create_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `update_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '修改时间',
+
+    PRIMARY KEY (`job_record_uuid`),
+    KEY `id` (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=0 DEFAULT CHARSET=utf8 COMMENT='服务部署地址';
+
 
 

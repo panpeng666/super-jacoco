@@ -791,23 +791,26 @@ public class CodeCovServiceImpl implements CodeCovService {
             Double lineCoverage = coverResult.getLineCoverage();
             String msg = "用户"+userMail+"的mr请求\\n"+url+"\\n单测覆盖率完成\\n"+"\\n增量代码单测的行覆盖率为"+lineCoverage+"；\\n具体报告可见"+reportUrl;
             //先加一个搜索的判断
+            //这里需要把判断应用隶属于哪个群组的判断迁移到robotUtils中
+            robotUtils.checkBelong(cr.getGitUrl(), msg);
 
-            if(cr.getGitUrl().contains("zhipin-cockatiel-store") || cr.getGitUrl().contains("zhipin-cockatiel-search")){
-                log.info("搜索团队的应用，对搜索平台进行机器人通知");
-                robotUtils.robotReport(msg,"https://hi-open.zhipin.com/open-apis/bot/hook/61b1f3b519e34c7e9ccb84e2d03c4e0e");
-            }else {
-            robotUtils.robotReport(msg,robotUrl);
-            }
+//            if(cr.getGitUrl().contains("zhipin-cockatiel-store") || cr.getGitUrl().contains("zhipin-cockatiel-search")){
+//                log.info("搜索团队的应用，对搜索平台进行机器人通知");
+//                robotUtils.robotReport(msg,"https://hi-open.zhipin.com/open-apis/bot/hook/61b1f3b519e34c7e9ccb84e2d03c4e0e");
+//            }else {
+//            robotUtils.robotReport(msg,robotUrl);
+//            }
         }else if( coverResult.getCoverStatus()==-1) {
             String logUrl = coverResult.toString();
             String msg = "生成增量代码覆盖率失败，请检查日志"+logUrl;
             cr = coverageReportDao.queryCoverageReportByUuid(uuid);
-            if(cr.getGitUrl().contains("zhipin-cockatiel-store") || cr.getGitUrl().contains("zhipin-cockatiel-search")){
-                log.info("搜索团队的应用，对搜索平台进行机器人通知");
-                robotUtils.robotReport(msg,"https://hi-open.zhipin.com/open-apis/bot/hook/61b1f3b519e34c7e9ccb84e2d03c4e0e");
-            }else {
-                robotUtils.robotReport(msg, robotUrl);
-            }
+            robotUtils.checkBelong(cr.getGitUrl(), msg);
+//            if(cr.getGitUrl().contains("zhipin-cockatiel-store") || cr.getGitUrl().contains("zhipin-cockatiel-search")){
+//                log.info("搜索团队的应用，对搜索平台进行机器人通知");
+//                robotUtils.robotReport(msg,"https://hi-open.zhipin.com/open-apis/bot/hook/61b1f3b519e34c7e9ccb84e2d03c4e0e");
+//            }else {
+//                robotUtils.robotReport(msg, robotUrl);
+//            }
         }
 
     }

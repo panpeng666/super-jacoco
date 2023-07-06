@@ -27,11 +27,14 @@ public class CodeCovController {
 
     //todo 需要实现的功能
     /**
-     * 1。需要有一个controller去接受rust的请求，来触发启动增量单测检查 done
-     * 2。触发完成后，需要走单测覆盖率流程 done
-     * 3。需要自动生成这个uuid，并且每分钟轮询这个线程是否完成 done
-     * 4。需要实现一个机器人通知的server（可以抄mqtt的） done
-     * 5。最好对用户信息进行记录
+     0。写一个影子应用，将原有的服务器的请求转发过来 over
+     1。用户中心的应用要给对应的机器人发送报告 over
+     2。单测失败的代码应该进行清理
+     3。用户中心dubbo应用要修改保证不启动应用（服务器端也需要写轮询kill）
+     4。入参的用户和请求应该落库保存
+     5。需要实现一个清理任务状态的修复脚本，防止卡住
+     6。同上，还需要对运行的服务进行监控
+     7。修改轮询方式，改为定时任务中轮询
      */
 
     /**
@@ -54,7 +57,6 @@ public class CodeCovController {
         if (!codeCovService.whiteList(giturl)){
             log.info("为非白名单代码url，不进行增量代码覆盖率检查"+ coverBaseWithOutUUidRequest.toString());
             return HttpResult.build(500,giturl+"为非白名单代码url，不进行增量代码覆盖率检查");
-
         }
         //uuid由时间戳生成
         String uuid = String.valueOf(System.currentTimeMillis());
@@ -77,6 +79,7 @@ public class CodeCovController {
         String userMail = coverBaseWithOutUUidRequest.getUserMail();
         codeCovService.triggerUnitCov(unitCoverRequest);
         //启动一个轮询检查，60min后超时
+        //todo 这里最好改一下轮询检查，放到job中进行触发
         new Thread(()->{
             try {
                 codeCovService.checkJobDone(uuid,url,userMail);
