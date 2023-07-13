@@ -40,10 +40,26 @@ public class CodeCoverageScheduleJob {
 
     private static AtomicInteger counter = new AtomicInteger(0);
 
+    /**
+     这段代码创建了一个线程池 executor，并设置了一些配置参数。让我们逐个解释每个参数的含义：
 
-    private static ThreadPoolExecutor executor = new ThreadPoolExecutor(2, 2, 5 * 60, TimeUnit.SECONDS,
+     2 和 2: 这是核心线程数和最大线程数，表示线程池中同时可以运行的线程数量。在这个例子中，线程池中始终保持两个线程，无论任务是否繁忙。
+
+     5 * 60: 这是线程的空闲时间超时时间，以秒为单位。如果一个线程在指定的时间内没有执行任何任务，那么它将被终止并从线程池中移除，以节省系统资源。
+
+     TimeUnit.SECONDS: 这是空闲时间超时的时间单位，这里设置为秒。
+
+     new SynchronousQueue<>(): 这是线程池使用的工作队列。在这个例子中，使用了一个同步队列，它没有容量限制，意味着它可以根据需要立即创建新线程来处理任务。
+
+     r -> new Thread(r, "Code-Coverage-Thread-pool" + counter.getAndIncrement()): 这是线程工厂，用于创建新的线程。在这个例子中，通过 lambda 表达式定义了一个线程工厂，它会创建一个新的线程，并为每个线程设置一个名称，名称以 "Code-Coverage-Thread-pool" 开头，后面加上一个递增的计数器。
+
+     通过以上配置，线程池 executor 将会维护两个核心线程，如果有更多的任务到达，它会创建额外的线程来处理任务，直到达到最大线程数。当线程空闲一段时间后，超过设定的空闲时间，它将被终止并从线程池中移除。新创建的线程会以特定的命名规则命名，方便调试和追踪。
+    */
+
+//    private static ThreadPoolExecutor executor = new ThreadPoolExecutor(2, 2, 5 * 60, TimeUnit.SECONDS,
+//            new SynchronousQueue<>(), r -> new Thread(r, "Code-Coverage-Thread-pool" + counter.getAndIncrement()));
+    private static ThreadPoolExecutor executor = new ThreadPoolExecutor(10, 10, 5 * 60, TimeUnit.SECONDS,
             new SynchronousQueue<>(), r -> new Thread(r, "Code-Coverage-Thread-pool" + counter.getAndIncrement()));
-
 
     /**
      * clone代码定时任务
@@ -76,6 +92,42 @@ public class CodeCoverageScheduleJob {
         }
         );
     }
+
+    /**
+     * @Description: 定时任务（60秒执行一次），检查mr触发的任务是否完成，是否进行了机器人报告
+     * @param:
+     * @return * @return void
+     * @author panpeng
+     * @date 2023/7/12 17:28
+    */
+    @Scheduled(fixedDelay = 60_000L, initialDelay = 10_000L)
+    public void checkMRJobDone() {
+
+        List<CoverageReportEntity> resList = coverageReportDao.queryCoverByIsMrAndIsMrReport(1,
+                0, 1);
+        log.info("查询需要检查的MR触发的数据{}条", resList.size());
+        resList.forEach(o -> {
+                    log.info("修改uuid" + o.getUuid() + "的Robot report状态为2");
+                    int num = coverageReportDao.updateReportStatusByUUid(2, o.getUuid());
+                    if (num > 0) {
+                        log.info("启动一个线程去监控");
+                        try {
+                            executor.execute(() -> {
+                                try {
+                                    codeCovService.checkJobDone(o.getUuid(), o.getMrUrl(), o.getMrUserMail());
+                                } catch (Exception e) {
+                                    e.printStackTrace();
+                                }
+                            });
+                        } catch (Exception e) {
+                            log.info("定时任务轮询checkMRJobDone失败");
+                        }
+                    }
+                }
+        );
+    }
+
+
 
 
     /**

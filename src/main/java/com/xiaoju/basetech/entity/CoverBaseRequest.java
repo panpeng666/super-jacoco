@@ -41,4 +41,29 @@ public class CoverBaseRequest {
     @Max(value = 2)
     @Min(value = 1)
     private Integer type;
+
+    /**
+     * 0=非mr请求，1=mr请求触发
+     */
+    @Max(value = 1)
+    @Min(value = 0)
+    private Integer mrRequest;
+
+
+    /**
+     *是否进行机器人汇报
+     * 0=未进行汇报，1=进行了汇报 2=正在执行监控检查 3= 无需汇报
+     */
+    @Max(value = 3)
+    @Min(value = 0)
+    private Integer isRobotReport;
+
+    /**
+     * mr触发时候的请求入参，方便排查问题
+     */
+    private String requestInfo;
+
+
+    private String mrUrl ;
+    private String mrUserMail;
 }

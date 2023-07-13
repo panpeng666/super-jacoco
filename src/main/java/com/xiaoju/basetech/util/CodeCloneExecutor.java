@@ -36,6 +36,7 @@ public class CodeCloneExecutor {
         }
         String logFile = LocalIpUtils.getTomcatBaseUrl()+"logs/" + coverageReport.getUuid() + ".log";
         coverageReport.setLogFile(logFile);
+        log.info(logFile);
         try {
             String uuid = coverageReport.getUuid();
             String nowLocalPath = CODE_ROOT + uuid + "/" + coverageReport.getNowVersion().replace("/", "_");
@@ -50,8 +51,10 @@ public class CodeCloneExecutor {
                 String baseLocalPath = CODE_ROOT + uuid + "/" + coverageReport.getBaseVersion().replace("/", "_");
                 coverageReport.setBaseLocalPath(baseLocalPath);
                 gitHandler.cloneRepository(gitUrl, baseLocalPath, coverageReport.getBaseVersion());
+                log.info(baseLocalPath);
             }
             log.info("uuid {}完成下载代码...", uuid);
+
             coverageReport.setRequestStatus(Constants.JobStatus.CLONE_DONE.val());
         } catch (Exception e) {
             log.error("下载代码发生异常:{}", coverageReport.getUuid(), e);

@@ -115,7 +115,9 @@ public class CodeCovServiceImpl implements CodeCovService {
             coverageReport.setSubModule("");
         }
         //数据写入数据库，等待定时任务去捞取
+        log.info(coverageReport.toString());
         coverageReportDao.insertCoverageReportById(coverageReport);
+        log.info(coverageReportDao.queryCoverageReportByUuid(coverageReport.getUuid()).toString());
     }
 
     /**
@@ -233,7 +235,7 @@ public class CodeCovServiceImpl implements CodeCovService {
         try {
             coverageReport.setRequestStatus(Constants.JobStatus.SUCCESS.val());
             //这里会删除代码
-//            FileUtil.cleanDir(new File(coverageReport.getNowLocalPath()).getParent());
+            FileUtil.cleanDir(new File(coverageReport.getNowLocalPath()).getParent());
 //        } catch (IOException e) {
         } catch (Exception e) {
             log.error("uuid={}删除代码失败..", coverageReport.getUuid(), e);
@@ -762,14 +764,20 @@ public class CodeCovServiceImpl implements CodeCovService {
     @Override
     public void checkJobDone(String uuid,String url,String userMail) throws Exception {
         log.info("定时轮询检测任务启动，检测uuid为"+uuid);
+
         int count = 60;
-        CoverResult coverResult = new CoverResult();
+        CoverResult coverResult = getCoverResult(uuid);
         while (coverResult.getCoverStatus()==0){
             Thread.sleep(60000);
             coverResult = getCoverResult(uuid);
             count--;
             if (count<=0){
                 log.info("uuid为"+uuid+"的轮询任务已经超时，结束轮询任务");
+                String logUrl = coverResult.toString();
+                String msg = "uuid为"+uuid+"的轮询任务已经超时，结束轮询任务"+logUrl;
+                CoverageReportEntity  cr = coverageReportDao.queryCoverageReportByUuid(uuid);
+                robotUtils.checkBelong(cr.getGitUrl(), msg);
+                coverageReportDao.updateReportStatusByUUid(1,uuid);
                 return;
             }
         }
@@ -777,8 +785,17 @@ public class CodeCovServiceImpl implements CodeCovService {
         CoverageReportEntity cr = coverageReportDao.queryCoverageReportByUuid(uuid);
         if (cr.getErrMsg().equals("没有增量代码")){
             log.info(uuid+"没有增量代码");
+            //没有增量代码的话，无需机器人汇报
+            coverageReportDao.updateReportStatusByUUid(3,uuid);
             return;
         }
+        //todo gitclone失败的报错先收敛到自己的群机器人观察一下
+        if (cr.getRequestStatus()==202){
+            robotUtils.robotReport(cr.getUuid()+"的git clone失败，入参为"+cr.getRequestInfo(),"https://hi-open.zhipin.com/open-apis/bot/hook/49fb1473329546b1a77b3ab731c0b279");
+            coverageReportDao.updateReportStatusByUUid(1,uuid);
+            return;
+        }
+
 
         //发送机器人通知
         if (coverResult.getCoverStatus()==1){
@@ -793,24 +810,15 @@ public class CodeCovServiceImpl implements CodeCovService {
             //先加一个搜索的判断
             //这里需要把判断应用隶属于哪个群组的判断迁移到robotUtils中
             robotUtils.checkBelong(cr.getGitUrl(), msg);
+            coverageReportDao.updateReportStatusByUUid(1,uuid);
 
-//            if(cr.getGitUrl().contains("zhipin-cockatiel-store") || cr.getGitUrl().contains("zhipin-cockatiel-search")){
-//                log.info("搜索团队的应用，对搜索平台进行机器人通知");
-//                robotUtils.robotReport(msg,"https://hi-open.zhipin.com/open-apis/bot/hook/61b1f3b519e34c7e9ccb84e2d03c4e0e");
-//            }else {
-//            robotUtils.robotReport(msg,robotUrl);
-//            }
         }else if( coverResult.getCoverStatus()==-1) {
             String logUrl = coverResult.toString();
             String msg = "生成增量代码覆盖率失败，请检查日志"+logUrl;
             cr = coverageReportDao.queryCoverageReportByUuid(uuid);
             robotUtils.checkBelong(cr.getGitUrl(), msg);
-//            if(cr.getGitUrl().contains("zhipin-cockatiel-store") || cr.getGitUrl().contains("zhipin-cockatiel-search")){
-//                log.info("搜索团队的应用，对搜索平台进行机器人通知");
-//                robotUtils.robotReport(msg,"https://hi-open.zhipin.com/open-apis/bot/hook/61b1f3b519e34c7e9ccb84e2d03c4e0e");
-//            }else {
-//                robotUtils.robotReport(msg, robotUrl);
-//            }
+            coverageReportDao.updateReportStatusByUUid(1,uuid);
+
         }
 
     }

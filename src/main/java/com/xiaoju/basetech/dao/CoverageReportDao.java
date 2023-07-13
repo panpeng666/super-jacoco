@@ -26,6 +26,20 @@ public interface CoverageReportDao {
     List<CoverageReportEntity> queryCoverByStatus(@Param("triggerStatus") Integer status, @Param("from") Integer from,
                                                   @Param("num") Integer num);
 
+    /**
+     * @Description: 根据是否为mr触发的任务，以及是否执行了机器人汇报查询
+     * @param: null
+     * @return * @return null
+     * @author panpeng
+     * @date 2023/7/12 17:30
+    */
+    List<CoverageReportEntity> queryCoverByIsMrAndIsMrReport(@Param("mrRequest") Integer mrRequest, @Param("isRobotReport") Integer isRobotReport,
+                                                  @Param("num") Integer num);
+
+
+    int updateReportStatusByUUid(@Param("isRobotReport") int isRobotReport, @Param("uuid") String uuid);
+
+
     int updateCoverageReportByDiffMethods(@Param("coverageReportEntity") CoverageReportEntity coverageReportEntity);
 
     int updateCoverageReportByReport(@Param("coverageReportEntity") CoverageReportEntity coverageReportEntity);
@@ -50,4 +64,7 @@ public interface CoverageReportDao {
      * @return int
      */
     int casUpdateStatusById(Integer id, Integer requestStatus, Integer expectedStatus);
+
+
+
 }

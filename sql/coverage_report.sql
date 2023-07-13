@@ -15,10 +15,14 @@ CREATE TABLE `diff_coverage_report` (
   `create_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   `update_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '修改时间',
   `sub_module` varchar(255) NOT NULL DEFAULT '' COMMENT '子项目目录名称',
-  `from` int(10) NOT NULL DEFAULT '0' COMMENT '1=单元测试，2=环境部署1=单元测试，2=hu',
+  `from` int(10) NOT NULL DEFAULT '0' COMMENT '1=单元测试，2=环境部署',
   `now_local_path` varchar(500) NOT NULL DEFAULT '',
   `base_local_path` varchar(500) NOT NULL DEFAULT '',
   `log_file` varchar(255) NOT NULL DEFAULT '',
+  `request_info` varchar(1000) NOT NULL DEFAULT '' COMMENT 'mr触发时候的请求入参',
+  `mr_request` int(10) NOT NULL DEFAULT '0' COMMENT '0=非mr请求，1=mr请求触发',
+  `mr_url` varchar(255) NOT NULL COMMENT 'mr请求时候的地址',
+  `mr_userMail` varchar(255) NOT NULL COMMENT '触发的用户邮箱',
   PRIMARY KEY (`job_record_uuid`),
   KEY `id` (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=0 DEFAULT CHARSET=utf8 COMMENT='增量代码覆盖率';

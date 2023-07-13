@@ -21,6 +21,12 @@
         <result column="update_time" property="updateTime"/>
         <result column="from" property="from"/>
         <result column="log_file" property="logFile"/>
+        <result column="request_info" property="requestInfo"/>
+        <result column="mr_request" property="mrRequest"/>
+        <result column="mr_url" property="mrUrl"/>
+        <result column="mr_userMail" property="mrUserMail"/>
+        <result column="is_robotReport" property="isRobotReport"/>
+
 
     </resultMap>
 
@@ -43,6 +49,23 @@
         limit #{num}
     </select>
 
+<!--    新增查询数据库中的未执行机器人报告的uuid，用于轮询任务check-->
+    <select id="queryCoverByIsMrAndIsMrReport" parameterType="java.lang.Integer" resultMap="coverageReportEntity">
+        SELECT * from diff_coverage_report
+        <where>
+            <if test="#{mrRequest} != null">
+                `mr_request`=#{mrRequest}
+            </if>
+        </where>
+        AND `is_robotReport`=#{isRobotReport}
+        ORDER BY `update_time`
+        asc
+        limit #{num}
+    </select>
+
+
+
+
     <insert id="insertCoverageReportById" parameterType="com.xiaoju.basetech.entity.CoverageReportEntity">
         INSERT INTO diff_coverage_report(
         `job_record_uuid`,
@@ -55,7 +78,13 @@
         `now_version`,
         `now_local_path` ,
         `base_local_path`,
-        `from`
+        `from`,
+        `log_file`,
+        `request_info`,
+        `mr_request`,
+        `mr_url`,
+        `mr_userMail`,
+        `is_robotReport`
         )VALUES (
         #{coverageReportEntity.uuid},
         #{coverageReportEntity.requestStatus},
@@ -67,8 +96,14 @@
         #{coverageReportEntity.nowVersion},
         #{coverageReportEntity.nowLocalPath},
         #{coverageReportEntity.baseLocalPath},
-        #{coverageReportEntity.from}
-        )
+        #{coverageReportEntity.from},
+        #{coverageReportEntity.logFile},
+        #{coverageReportEntity.requestInfo},
+        #{coverageReportEntity.mrRequest},
+        #{coverageReportEntity.mrUrl},
+        #{coverageReportEntity.mrUserMail},
+        #{coverageReportEntity.isRobotReport}
+                        )
     </insert>
 
 
@@ -80,6 +115,17 @@
         `diffmethod`=#{coverageReportEntity.diffMethod},
         WHERE job_record_uuid=#{coverageReportEntity.uuid}
     </update>
+
+
+    <update id="updateReportStatusByUUid">
+        UPDATE diff_coverage_report
+        SET
+            `is_robotReport`=#{isRobotReport}
+        WHERE `job_record_uuid`=#{uuid}
+            limit 1
+    </update>
+
+
     <update id="casUpdateByStatus">
         UPDATE diff_coverage_report
         SET

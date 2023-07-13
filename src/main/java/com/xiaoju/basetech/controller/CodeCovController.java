@@ -3,6 +3,7 @@ package com.xiaoju.basetech.controller;
 
 import com.xiaoju.basetech.entity.*;
 import com.xiaoju.basetech.service.CodeCovService;
+import com.xiaoju.basetech.util.CodeCloneExecutor;
 import com.xiaoju.basetech.util.RobotUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
@@ -12,6 +13,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
+import java.lang.reflect.InvocationTargetException;
 import java.util.Objects;
 
 /**
@@ -24,17 +26,19 @@ public class CodeCovController {
 
     @Autowired
     private CodeCovService codeCovService;
+    @Autowired
+    private CodeCloneExecutor codeCloneExecutor;
 
     //todo 需要实现的功能
     /**
      0。写一个影子应用，将原有的服务器的请求转发过来 over
      1。用户中心的应用要给对应的机器人发送报告 over
      2。单测失败的代码应该进行清理
-     3。用户中心dubbo应用要修改保证不启动应用（服务器端也需要写轮询kill）
-     4。入参的用户和请求应该落库保存
+     3。用户中心dubbo应用要修改保证不启动应用 over（ 服务器端也需要写轮询kill）
+     4。入参的用户和请求应该落库保存 over
      5。需要实现一个清理任务状态的修复脚本，防止卡住
      6。同上，还需要对运行的服务进行监控
-     7。修改轮询方式，改为定时任务中轮询
+     7。修改轮询方式，改为定时任务中轮询 over
      */
 
     /**
@@ -73,22 +77,59 @@ public class CodeCovController {
         }
         //入参全部打印到日志
         log.info("uuid=" +uuid+ "开始执行增量代码检查，入参为"+ coverBaseWithOutUUidRequest.toString());
+        //设置新的数据到unitCoverRequest中，入参，是否执行过机器人通知（否），是否为mr请求（是）
 
+        unitCoverRequest.setRequestInfo(coverBaseWithOutUUidRequest.toString());
+        unitCoverRequest.setIsRobotReport(0);
+        unitCoverRequest.setMrRequest(1);
         BeanUtils.copyProperties(coverBaseWithOutUUidRequest,unitCoverRequest);
-        String url = coverBaseWithOutUUidRequest.getUrl();
-        String userMail = coverBaseWithOutUUidRequest.getUserMail();
+
+        unitCoverRequest.setMrUrl(coverBaseWithOutUUidRequest.getUrl());
+        unitCoverRequest.setMrUserMail(coverBaseWithOutUUidRequest.getUserMail());
+
+//        String url = coverBaseWithOutUUidRequest.getUrl();
+//        String userMail = coverBaseWithOutUUidRequest.getUserMail();
         codeCovService.triggerUnitCov(unitCoverRequest);
         //启动一个轮询检查，60min后超时
         //todo 这里最好改一下轮询检查，放到job中进行触发
-        new Thread(()->{
+//        new Thread(()->{
+//            try {
+//                codeCovService.checkJobDone(uuid,url,userMail);
+//            } catch (Exception e) {
+//                e.printStackTrace();
+//            }
+//        }).start();
+        return HttpResult.build(200,uuid);
+    }
+
+
+    //todo 增加一个gitclone的方法专门测试git clone失败的问题
+    @PostMapping(value = "/gitCloneTest")
+    public HttpResult<Boolean> gitCloneTest(@RequestBody @Validated CoverBaseWithOutUUidRequest coverBaseWithOutUUidRequest) {
+        String uuid = String.valueOf(System.currentTimeMillis());
+
+
+            CoverageReportEntity coverageReport = new CoverageReportEntity();
+            coverageReport.setUuid(uuid+"_gitTest");
+            log.info(uuid+"_gitTest 开始执行gitclone");
             try {
-                codeCovService.checkJobDone(uuid,url,userMail);
+                //复制属性
+                BeanUtils.copyProperties(coverBaseWithOutUUidRequest,coverageReport);
+
+                log.info(coverageReport.toString());
             } catch (Exception e) {
                 e.printStackTrace();
             }
-        }).start();
-        return HttpResult.build(200,uuid);
+
+
+            log.info("+==============================+==============================");
+            log.info(uuid+"_gitTest 开始执行gitclone");
+            codeCloneExecutor.cloneCode(coverageReport);
+
+        return HttpResult.build(200,uuid+"_gitTest");
     }
+
+
 
     /**
      * 触发单元测试diff覆盖率

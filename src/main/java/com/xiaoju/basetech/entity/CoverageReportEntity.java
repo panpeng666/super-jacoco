@@ -38,5 +38,11 @@ public class CoverageReportEntity {
     private String reportFile;
     private Integer from;
     private String logFile = "";
+    //数据库新增如下4个字段
+    private String requestInfo = "";
+    private Integer mrRequest;
+    private String mrUrl = "";
+    private String mrUserMail = "";
+    private Integer isRobotReport;
     
 }

@@ -21,7 +21,9 @@ public class Constants {
 
         CLONING(2, "下载代码中"),
         CLONE_DONE(102, "下载代码成功"),
+//        CLONE_FAIL(202, "下载代码失败"),
         CLONE_FAIL(202, "下载代码失败"),
+
 
         COMPILING(3, "编译中"),
         COMPILE_DONE(103, "编译成功"),
