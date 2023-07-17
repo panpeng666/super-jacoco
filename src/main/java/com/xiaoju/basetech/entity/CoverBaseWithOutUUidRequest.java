@@ -47,19 +47,17 @@ public class CoverBaseWithOutUUidRequest {
     private String url;
     private String userMail;
 
-    @Override
-    public String toString() {
-        return "CoverBaseWithOutUUidRequest{" +
-                "envType='" + envType + '\'' +
-                ", gitUrl='" + gitUrl + '\'' +
-                ", baseVersion='" + baseVersion + '\'' +
-                ", nowVersion='" + nowVersion + '\'' +
-                ", subModule='" + subModule + '\'' +
-                ", type=" + type +
-                ", address='" + address + '\'' +
-                ", port=" + port +
-                ", url='" + url + '\'' +
-                ", userMail='" + userMail + '\'' +
-                '}';
-    }
+    /**
+        触发mr时候的状态
+     unapproved：拒绝
+     approved：同意
+     open： 新开
+     update：更新
+     reopen： 重新打开
+     closed：关闭
+     merged：合并
+    */
+
+    private String mrStatus;
+
 }

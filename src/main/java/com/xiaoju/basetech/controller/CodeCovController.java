@@ -53,15 +53,33 @@ public class CodeCovController {
         String giturl = coverBaseWithOutUUidRequest.getGitUrl();
         if (!giturl.contains("git.kanzhun-inc.com/rd21/")){
             log.info("为非后端代码url，不进行增量代码覆盖率检查"+ coverBaseWithOutUUidRequest.toString());
-            return HttpResult.build(500,giturl+"为非后端代码url，不进行增量代码覆盖率检查");
+            return HttpResult.build(501,giturl+"为非后端代码url，不进行增量代码覆盖率检查");
         }
 
 
         //加一个白名单，只对白名单进行单测检查
         if (!codeCovService.whiteList(giturl)){
             log.info("为非白名单代码url，不进行增量代码覆盖率检查"+ coverBaseWithOutUUidRequest.toString());
-            return HttpResult.build(500,giturl+"为非白名单代码url，不进行增量代码覆盖率检查");
+            return HttpResult.build(502,giturl+"为非白名单代码url，不进行增量代码覆盖率检查");
         }
+
+        //非空判断
+        if (Objects.isNull(coverBaseWithOutUUidRequest.getMrStatus())){
+            coverBaseWithOutUUidRequest.setMrStatus("merged");
+        }
+        //判断mr状态对不对
+        String mrStatus = coverBaseWithOutUUidRequest.getMrStatus();
+//        unapproved：拒绝
+//        approved：同意
+//        open： 新开
+//        update：更新
+//        reopen： 重新打开
+//        closed：关闭
+//        merged：合并
+        if (mrStatus.contains("unapproved")||mrStatus.contains("closed")||mrStatus.contains("approved")){
+            return HttpResult.build(503,giturl+"非合并mr请求，不进行覆盖率检查");
+        }
+
         //uuid由时间戳生成
         String uuid = String.valueOf(System.currentTimeMillis());
         UnitCoverRequest unitCoverRequest = new UnitCoverRequest();
@@ -90,44 +108,35 @@ public class CodeCovController {
 //        String url = coverBaseWithOutUUidRequest.getUrl();
 //        String userMail = coverBaseWithOutUUidRequest.getUserMail();
         codeCovService.triggerUnitCov(unitCoverRequest);
-        //启动一个轮询检查，60min后超时
-        //todo 这里最好改一下轮询检查，放到job中进行触发
-//        new Thread(()->{
-//            try {
-//                codeCovService.checkJobDone(uuid,url,userMail);
-//            } catch (Exception e) {
-//                e.printStackTrace();
-//            }
-//        }).start();
         return HttpResult.build(200,uuid);
     }
 
 
-    //todo 增加一个gitclone的方法专门测试git clone失败的问题
-    @PostMapping(value = "/gitCloneTest")
-    public HttpResult<Boolean> gitCloneTest(@RequestBody @Validated CoverBaseWithOutUUidRequest coverBaseWithOutUUidRequest) {
-        String uuid = String.valueOf(System.currentTimeMillis());
-
-
-            CoverageReportEntity coverageReport = new CoverageReportEntity();
-            coverageReport.setUuid(uuid+"_gitTest");
-            log.info(uuid+"_gitTest 开始执行gitclone");
-            try {
-                //复制属性
-                BeanUtils.copyProperties(coverBaseWithOutUUidRequest,coverageReport);
-
-                log.info(coverageReport.toString());
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-
-
-            log.info("+==============================+==============================");
-            log.info(uuid+"_gitTest 开始执行gitclone");
-            codeCloneExecutor.cloneCode(coverageReport);
-
-        return HttpResult.build(200,uuid+"_gitTest");
-    }
+//    增加一个gitclone的方法专门测试git clone失败的问题
+//    @PostMapping(value = "/gitCloneTest")
+//    public HttpResult<Boolean> gitCloneTest(@RequestBody @Validated CoverBaseWithOutUUidRequest coverBaseWithOutUUidRequest) {
+//        String uuid = String.valueOf(System.currentTimeMillis());
+//
+//
+//            CoverageReportEntity coverageReport = new CoverageReportEntity();
+//            coverageReport.setUuid(uuid+"_gitTest");
+//            log.info(uuid+"_gitTest 开始执行gitclone");
+//            try {
+//                //复制属性
+//                BeanUtils.copyProperties(coverBaseWithOutUUidRequest,coverageReport);
+//
+//                log.info(coverageReport.toString());
+//            } catch (Exception e) {
+//                e.printStackTrace();
+//            }
+//
+//
+//            log.info("+==============================+==============================");
+//            log.info(uuid+"_gitTest 开始执行gitclone");
+//            codeCloneExecutor.cloneCode(coverageReport);
+//
+//        return HttpResult.build(200,uuid+"_gitTest");
+//    }
 
 
 
