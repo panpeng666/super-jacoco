@@ -72,13 +72,6 @@ public class CodeCovServiceImpl implements CodeCovService {
 
     @Autowired
     private RobotUtils robotUtils;
-
-    //mr群机器人地址
-   //
-    //
-    //
-    //
-    // private  String robotUrl = "https://hi-open.zhipin.com/open-apis/bot/hook/c1855c2ba5da4f2bb35097c7deb2e45a";
     //测试机器人地址
     private String robotUrl = "https://hi-open.zhipin.com/open-apis/bot/hook/49fb1473329546b1a77b3ab731c0b279";
     /**
@@ -90,14 +83,11 @@ public class CodeCovServiceImpl implements CodeCovService {
     public void triggerUnitCov(UnitCoverRequest unitCoverRequest) {
         CoverageReportEntity history = coverageReportDao.queryCoverageReportByUuid(unitCoverRequest.getUuid());
         double x =10.1;
-
         //先对uuid查库判断是否存在，存在的时候报错
-
         if (history != null) {
             throw new ResponseException(ErrorCode.FAIL, String.format("uuid:%s已经调用过，请勿重复触发！",
                     unitCoverRequest.getUuid()));
         }
-
         CoverageReportEntity coverageReport = new CoverageReportEntity();
         try {
             //复制属性
@@ -117,6 +107,7 @@ public class CodeCovServiceImpl implements CodeCovService {
         //数据写入数据库，等待定时任务去捞取
         log.info(coverageReport.toString());
         coverageReportDao.insertCoverageReportById(coverageReport);
+        //打印日志
         log.info(coverageReportDao.queryCoverageReportByUuid(coverageReport.getUuid()).toString());
     }
 

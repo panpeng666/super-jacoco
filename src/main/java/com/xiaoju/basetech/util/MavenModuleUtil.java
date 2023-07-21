@@ -97,8 +97,8 @@ public class MavenModuleUtil {
                     "            <plugin>\n" +
                     "                <groupId>org.jacoco</groupId>\n" +
                     "                <artifactId>jacoco-maven-plugin</artifactId>\n" +
-//                    "                <version>1.0.2-SNAPSHOT</version>\n" +
-                    "                <version>0.8.10</version>\n" +
+                    "                <version>1.0.2-SNAPSHOT</version>\n" +
+//                    "                <version>0.8.10</version>\n" +
                     "                <executions>\n" +
                     "                    <execution>\n" +
                     "                        <id>report-aggregate</id>\n" +

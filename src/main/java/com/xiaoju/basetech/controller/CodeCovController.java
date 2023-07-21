@@ -39,6 +39,8 @@ public class CodeCovController {
      5。需要实现一个清理任务状态的修复脚本，防止卡住
      6。同上，还需要对运行的服务进行监控
      7。修改轮询方式，改为定时任务中轮询 over
+
+     分母去掉一些枚举、工具类
      */
 
     /**
@@ -49,37 +51,26 @@ public class CodeCovController {
      */
     @PostMapping(value = "/triggerUnitCoverTest")
     public HttpResult<Boolean> triggerUnitCoverTest(@RequestBody @Validated CoverBaseWithOutUUidRequest coverBaseWithOutUUidRequest) {
-        //加一个rd21组判断，不然没权限直接gg
+        //加一个rd21组判断
         String giturl = coverBaseWithOutUUidRequest.getGitUrl();
         if (!giturl.contains("git.kanzhun-inc.com/rd21/")){
-            log.info("为非后端代码url，不进行增量代码覆盖率检查"+ coverBaseWithOutUUidRequest.toString());
+            log.info("为非后端代码url，不进行增量代码覆盖率检查"+ coverBaseWithOutUUidRequest);
             return HttpResult.build(501,giturl+"为非后端代码url，不进行增量代码覆盖率检查");
         }
-
-
         //加一个白名单，只对白名单进行单测检查
         if (!codeCovService.whiteList(giturl)){
-            log.info("为非白名单代码url，不进行增量代码覆盖率检查"+ coverBaseWithOutUUidRequest.toString());
+            log.info("为非白名单代码url，不进行增量代码覆盖率检查"+ coverBaseWithOutUUidRequest);
             return HttpResult.build(502,giturl+"为非白名单代码url，不进行增量代码覆盖率检查");
         }
-
-        //非空判断
+        //mrStatus非空判断
         if (Objects.isNull(coverBaseWithOutUUidRequest.getMrStatus())){
             coverBaseWithOutUUidRequest.setMrStatus("merged");
         }
         //判断mr状态对不对
         String mrStatus = coverBaseWithOutUUidRequest.getMrStatus();
-//        unapproved：拒绝
-//        approved：同意
-//        open： 新开
-//        update：更新
-//        reopen： 重新打开
-//        closed：关闭
-//        merged：合并
         if (mrStatus.contains("unapproved")||mrStatus.contains("closed")||mrStatus.contains("approved")){
             return HttpResult.build(503,giturl+"非合并mr请求，不进行覆盖率检查");
         }
-
         //uuid由时间戳生成
         String uuid = String.valueOf(System.currentTimeMillis());
         UnitCoverRequest unitCoverRequest = new UnitCoverRequest();
@@ -104,40 +95,9 @@ public class CodeCovController {
 
         unitCoverRequest.setMrUrl(coverBaseWithOutUUidRequest.getUrl());
         unitCoverRequest.setMrUserMail(coverBaseWithOutUUidRequest.getUserMail());
-
-//        String url = coverBaseWithOutUUidRequest.getUrl();
-//        String userMail = coverBaseWithOutUUidRequest.getUserMail();
         codeCovService.triggerUnitCov(unitCoverRequest);
         return HttpResult.build(200,uuid);
     }
-
-
-//    增加一个gitclone的方法专门测试git clone失败的问题
-//    @PostMapping(value = "/gitCloneTest")
-//    public HttpResult<Boolean> gitCloneTest(@RequestBody @Validated CoverBaseWithOutUUidRequest coverBaseWithOutUUidRequest) {
-//        String uuid = String.valueOf(System.currentTimeMillis());
-//
-//
-//            CoverageReportEntity coverageReport = new CoverageReportEntity();
-//            coverageReport.setUuid(uuid+"_gitTest");
-//            log.info(uuid+"_gitTest 开始执行gitclone");
-//            try {
-//                //复制属性
-//                BeanUtils.copyProperties(coverBaseWithOutUUidRequest,coverageReport);
-//
-//                log.info(coverageReport.toString());
-//            } catch (Exception e) {
-//                e.printStackTrace();
-//            }
-//
-//
-//            log.info("+==============================+==============================");
-//            log.info(uuid+"_gitTest 开始执行gitclone");
-//            codeCloneExecutor.cloneCode(coverageReport);
-//
-//        return HttpResult.build(200,uuid+"_gitTest");
-//    }
-
 
 
     /**
