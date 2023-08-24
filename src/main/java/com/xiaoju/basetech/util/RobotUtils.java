@@ -6,6 +6,7 @@ import org.springframework.stereotype.Component;
 import cn.hutool.http.HttpUtil;
 
 import java.util.List;
+import java.util.Objects;
 
 /**
  * @author: panpeng
@@ -34,19 +35,52 @@ public class RobotUtils {
      * 发送msg通知到对应的群机器人
      * @param msg
      */
+    //todo 这里的逻辑太不优雅了，需要改动一下
 
     public void robotReport(String msg,String robotUrl){
         log.info("进入机器人通知"+msg);
-        String json = "{\"timestamp\":1665470557810,\"content\":{\"title\":{\"text\":\"super-jacoco机器人通知\",\"style\":1,\"color\":\"#0D0D1A\"},\"content\":{\"color\":\"#0D0D1A\",\"atIds\":\"userOpenId\",\"style\":1,\"text\":\""+msg +"\"}},\"msg_type\":\"system_card\"}\n";
+        String json = "{\"msg_type\":\"compressive_card\",\"content\":{\"compressiveCardContent\":\"{\\\"modules\\\":[{\\\"tag\\\":\\\"markdown\\\",\\\"content\\\":\\\""+msg+"\\\",\\\"textAlign\\\":\\\"left\\\"}],\\\"header\\\":{\\\"text\\\":{\\\"content\\\":\\\"super-jacoco报告\\\",\\\"tag\\\":\\\"plain_text\\\"},\\\"color\\\":\\\"blue\\\"}}\"}}";
+
+        log.info(json);
         String res = HttpUtil.post(robotUrl, json);
         log.info("完成机器人通知"+res);
     }
+
+    /**
+     * @Description: 生成robot机器人的markDown文本
+     * @param: user
+     * @param: mrUrl
+     * @param: reportUrl
+     * @return * @return java.lang.String
+     * @author panpeng
+     * @date 2023/8/24 20:38
+    */
+    public String buildSuccessMarkDownMsg(String user,String mrUrl,String result,String reportUrl){
+        if (Objects.isNull(user)||Objects.isNull(mrUrl)||Objects.isNull(reportUrl)||Objects.isNull(result)){
+            log.error("构建机器人通知markDown文本时异常");
+            return "";
+        }
+        String msg = "用户**"+user+"**的mr请求\\n[点击查看mr请求详情]("+mrUrl+")\\n单测增量覆盖率完成，结果为"+result+"\\n[点击查看覆盖率报告]("+reportUrl+")\\n";
+        log.info(msg);
+        return msg;
+    }
+
+    public String buildFailMarkDownMsg(String user,String mrUrl,String result,String reportUrl){
+        if (Objects.isNull(user)||Objects.isNull(mrUrl)||Objects.isNull(reportUrl)||Objects.isNull(result)){
+            log.error("构建机器人通知markDown文本时异常");
+            return "";
+        }
+        String msg = "用户**"+user+"**的mr请求\\n[点击查看mr请求详情]("+mrUrl+")\\n单测增量覆盖率执行失败，结果为"+result+"\\n[点击查看报错日志]("+reportUrl+")\\n";
+        log.info(msg);
+        return msg;
+    }
+
 
     public void checkBelong(String gitUrl,String msg){
         if (isUser(gitUrl,msg)){
             return;
         }
-        if (isUser(gitUrl,msg)){
+        if (isSearch(gitUrl,msg)){
             return;
         }
     }
@@ -69,5 +103,6 @@ public class RobotUtils {
         }
         return false;
     }
+
 
 }

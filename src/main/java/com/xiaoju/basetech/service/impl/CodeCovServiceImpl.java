@@ -797,7 +797,9 @@ public class CodeCovServiceImpl implements CodeCovService {
             String baseVersion  = cr.getBaseVersion();
             String nowVersion = cr.getNowVersion();
             Double lineCoverage = coverResult.getLineCoverage();
-            String msg = "用户"+userMail+"的mr请求\\n"+url+"\\n单测覆盖率完成\\n"+"\\n增量代码单测的行覆盖率为"+lineCoverage+"；\\n具体报告可见"+reportUrl;
+
+            String msg = robotUtils.buildSuccessMarkDownMsg(userMail,url,String.valueOf(lineCoverage),reportUrl);
+//            String msg = "用户"+userMail+"的mr请求\\n"+url+"\\n单测覆盖率完成\\n"+"\\n增量代码单测的行覆盖率为"+lineCoverage+"；\\n具体报告可见"+reportUrl;
             //先加一个搜索的判断
             //这里需要把判断应用隶属于哪个群组的判断迁移到robotUtils中
             robotUtils.checkBelong(cr.getGitUrl(), msg);
@@ -805,7 +807,8 @@ public class CodeCovServiceImpl implements CodeCovService {
 
         }else if( coverResult.getCoverStatus()==-1) {
             String logUrl = coverResult.toString();
-            String msg = "生成增量代码覆盖率失败，请检查日志"+logUrl;
+            String msg = robotUtils.buildFailMarkDownMsg(userMail,url,logUrl,logUrl);
+//            String msg = "生成增量代码覆盖率失败，请检查日志"+logUrl;
             cr = coverageReportDao.queryCoverageReportByUuid(uuid);
             robotUtils.checkBelong(cr.getGitUrl(), msg);
             coverageReportDao.updateReportStatusByUUid(1,uuid);
