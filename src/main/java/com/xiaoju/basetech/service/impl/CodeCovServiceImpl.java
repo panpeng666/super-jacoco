@@ -23,9 +23,8 @@ import org.springframework.util.StringUtils;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Timer;
+import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 import static com.xiaoju.basetech.util.Constants.*;
 
@@ -71,9 +70,14 @@ public class CodeCovServiceImpl implements CodeCovService {
     private ReportParser reportParser;
 
     @Autowired
+    private RedisUtil redisUtil;
+
+    @Autowired
     private RobotUtils robotUtils;
+
     //测试机器人地址
     private String robotUrl = "https://hi-open.zhipin.com/open-apis/bot/hook/49fb1473329546b1a77b3ab731c0b279";
+
     /**
      * 新增单元覆盖率增量覆盖率任务
      *
@@ -82,7 +86,7 @@ public class CodeCovServiceImpl implements CodeCovService {
     @Override
     public void triggerUnitCov(UnitCoverRequest unitCoverRequest) {
         CoverageReportEntity history = coverageReportDao.queryCoverageReportByUuid(unitCoverRequest.getUuid());
-        double x =10.1;
+        double x = 10.1;
         //先对uuid查库判断是否存在，存在的时候报错
         if (history != null) {
             throw new ResponseException(ErrorCode.FAIL, String.format("uuid:%s已经调用过，请勿重复触发！",
@@ -106,6 +110,15 @@ public class CodeCovServiceImpl implements CodeCovService {
         }
         //数据写入数据库，等待定时任务去捞取
         log.info(coverageReport.toString());
+        //写数据库时判断一下是否为NULL任务，如果是，creatime延迟5min
+        if (coverageReport.getUuid().endsWith("_FULL")){
+            Date now = new Date();
+            Date date = new Date(now.getTime() + (5 * 60 * 1000));
+            coverageReport.setCreateTime(date);
+        }else {
+            Date now = new Date();
+            coverageReport.setCreateTime(now);
+        }
         coverageReportDao.insertCoverageReportById(coverageReport);
         //打印日志
         log.info(coverageReportDao.queryCoverageReportByUuid(coverageReport.getUuid()).toString());
@@ -384,8 +397,7 @@ public class CodeCovServiceImpl implements CodeCovService {
     }
 
     /**
-     * @param envCoverRequest
-     * 改动原方法，由于目标服务器内存不足，无法执行mvn ，改写该方法，用于本机拉取git代码并执行mvn
+     * @param envCoverRequest 改动原方法，由于目标服务器内存不足，无法执行mvn ，改写该方法，用于本机拉取git代码并执行mvn
      */
 
     @Override
@@ -480,7 +492,7 @@ public class CodeCovServiceImpl implements CodeCovService {
                     // 多模块
                     for (String module : moduleList) {
                         builder.append("--sourcefiles ./" + module + "/src/main/java/ ");
-                       // builder.append("--classfiles ./" + module + "/target/classes/com/ ");
+                        // builder.append("--classfiles ./" + module + "/target/classes/com/ ");
                         builder.append("--classfiles ./" + module + "/target/classes/ ");
 
                     }
@@ -534,7 +546,7 @@ public class CodeCovServiceImpl implements CodeCovService {
                     for (String module : moduleList) {
                         StringBuilder buildertmp = new StringBuilder("java -jar " + JACOCO_PATH + " report ./jacoco.exec");
                         buildertmp.append(" --sourcefiles ./" + module + "/src/main/java/");
-                      //  buildertmp.append(" --classfiles ./" + module + "/target/classes/com/");
+                        //  buildertmp.append(" --classfiles ./" + module + "/target/classes/com/");
                         buildertmp.append(" --classfiles ./" + module + "/target/classes/ ");
 
                         if (!StringUtils.isEmpty(coverageReport.getDiffMethod())) {
@@ -639,7 +651,7 @@ public class CodeCovServiceImpl implements CodeCovService {
                     // 多模块
 
                     builder.append("--sourcefiles ./" + subModule + "/src/main/java/ ");
-                  //  builder.append("--classfiles ./" + subModule + "/target/classes/com/ ");
+                    //  builder.append("--classfiles ./" + subModule + "/target/classes/com/ ");
                     builder.append("--classfiles ./" + subModule + "/target/classes/ ");
 
                 }
@@ -695,7 +707,7 @@ public class CodeCovServiceImpl implements CodeCovService {
 
                     StringBuilder buildertmp = new StringBuilder("java -jar " + JACOCO_PATH + " report ./jacoco.exec");
                     buildertmp.append(" --sourcefiles ./" + subModule + "/src/main/java/");
-                   // buildertmp.append(" --classfiles ./" + subModule + "/target/classes/com/");
+                    // buildertmp.append(" --classfiles ./" + subModule + "/target/classes/com/");
                     buildertmp.append(" --classfiles ./" + subModule + "/target/classes/ ");
                     if (!StringUtils.isEmpty(diffFiles)) {
                         builder.append("--diffFile " + diffFiles);
@@ -745,78 +757,179 @@ public class CodeCovServiceImpl implements CodeCovService {
             throw new RuntimeException(e.getMessage());
         }
     }
+
     /**
-     * @Description: 定时轮询uuid的报告是否完成
-     * @param: uuid
      * @return * @return void
+     * @Description: 定时轮询uuid的报告是否完成
+     * <p>
+     * 0913，新增单测检查逻辑
+     * 设计思路，如果uuid的后缀是_DIFF，就同时查询uuid_DIFF和uuid_FULL 2个是否都完成，都成功就在生成报告时，同时返回这2个结果
+     * 如果后缀是_FULL，直接忽略掉不处理
+     * 其他后缀正常处理（说明是纯增量计算）
+     * @param: uuid
      * @author panpeng
      * @date 2023/6/8 11:44
-    */
+     */
     @Override
-    public void checkJobDone(String uuid,String url,String userMail) throws Exception {
-        log.info("定时轮询检测任务启动，检测uuid为"+uuid);
+    public void checkJobDone(String uuid, String url, String userMail) throws Exception {
+        log.info("定时轮询检测任务启动，检测uuid为" + uuid);
+        if (isUuidEndWithDiff(uuid)){
+            //为增量覆盖，加入全量的检查任务
+            String fullUuid = uuid.replaceAll("_DIFF$", "_FULL");
+            reportJob(uuid,fullUuid,url,userMail);
+        }else if (uuid.endsWith("_FULL")){
+            //全量请求就别发通知了，只通知一次，防止误解
+            return;
+        }else {
+            reportJob(uuid, url, userMail);
+        }
+    }
 
+
+    private void reportJob(String uuid, String url, String userMail) throws Exception {
         int count = 60;
         CoverResult coverResult = getCoverResult(uuid);
-        while (coverResult.getCoverStatus()==0){
+        while (coverResult.getCoverStatus() == 0) {
             Thread.sleep(60000);
             coverResult = getCoverResult(uuid);
             count--;
-            if (count<=0){
-                log.info("uuid为"+uuid+"的轮询任务已经超时，结束轮询任务");
+            if (count <= 0) {
+                log.info("uuid为" + uuid + "的轮询任务已经超时，结束轮询任务");
                 String logUrl = coverResult.toString();
-                String msg = "uuid为"+uuid+"的轮询任务已经超时，结束轮询任务"+logUrl;
-                CoverageReportEntity  cr = coverageReportDao.queryCoverageReportByUuid(uuid);
+                String msg = "uuid为" + uuid + "的轮询任务已经超时，结束轮询任务" + logUrl;
+                CoverageReportEntity cr = coverageReportDao.queryCoverageReportByUuid(uuid);
                 robotUtils.checkBelong(cr.getGitUrl(), msg);
-                coverageReportDao.updateReportStatusByUUid(1,uuid);
+                coverageReportDao.updateReportStatusByUUid(1, uuid);
                 return;
             }
         }
         //todo 如果代码已经合并，git diff的数据为null时，此时应该不通知（先自己加判断，后续还是改入参会比较好）
         CoverageReportEntity cr = coverageReportDao.queryCoverageReportByUuid(uuid);
-        if (cr.getErrMsg().equals("没有增量代码")){
-            log.info(uuid+"没有增量代码");
+        if (cr.getErrMsg().equals("没有增量代码")) {
+            log.info(uuid + "没有增量代码");
             //没有增量代码的话，无需机器人汇报
-            coverageReportDao.updateReportStatusByUUid(3,uuid);
+            coverageReportDao.updateReportStatusByUUid(3, uuid);
             return;
         }
         //todo gitclone失败的报错先收敛到自己的群机器人观察一下
-        if (cr.getRequestStatus()==202){
-            robotUtils.robotReport(cr.getUuid()+"的git clone失败，入参为"+cr.getRequestInfo(),"https://hi-open.zhipin.com/open-apis/bot/hook/49fb1473329546b1a77b3ab731c0b279");
-            coverageReportDao.updateReportStatusByUUid(1,uuid);
+        if (cr.getRequestStatus() == 202) {
+            robotUtils.robotReport(cr.getUuid() + "的git clone失败，入参为" + cr.getRequestInfo(), "https://hi-open.zhipin.com/open-apis/bot/hook/49fb1473329546b1a77b3ab731c0b279");
+            coverageReportDao.updateReportStatusByUUid(1, uuid);
             return;
         }
 
-
         //发送机器人通知
-        if (coverResult.getCoverStatus()==1){
-            log.info("uuid为"+uuid+"的报告生成成功，开始发送机器人消息至mr群");
+        if (coverResult.getCoverStatus() == 1) {
+            log.info("uuid为" + uuid + "的报告生成成功，开始发送机器人消息至mr群");
 
             String reportUrl = coverResult.getReportUrl();
             cr = coverageReportDao.queryCoverageReportByUuid(uuid);
-            String baseVersion  = cr.getBaseVersion();
+            String baseVersion = cr.getBaseVersion();
             String nowVersion = cr.getNowVersion();
             Double lineCoverage = coverResult.getLineCoverage();
 
-            String msg = robotUtils.buildSuccessMarkDownMsg(userMail,url,String.valueOf(lineCoverage),reportUrl);
+            String msg = robotUtils.buildSuccessMarkDownMsg(userMail, url, String.valueOf(lineCoverage), reportUrl);
 //            String msg = "用户"+userMail+"的mr请求\\n"+url+"\\n单测覆盖率完成\\n"+"\\n增量代码单测的行覆盖率为"+lineCoverage+"；\\n具体报告可见"+reportUrl;
             //先加一个搜索的判断
             //这里需要把判断应用隶属于哪个群组的判断迁移到robotUtils中
             robotUtils.checkBelong(cr.getGitUrl(), msg);
-            coverageReportDao.updateReportStatusByUUid(1,uuid);
+            coverageReportDao.updateReportStatusByUUid(1, uuid);
 
-        }else if( coverResult.getCoverStatus()==-1) {
+        } else if (coverResult.getCoverStatus() == -1) {
             String logUrl = coverResult.toString();
-            String msg = robotUtils.buildFailMarkDownMsg(userMail,url,logUrl,logUrl);
+            String msg = robotUtils.buildFailMarkDownMsg(userMail, url, logUrl, logUrl);
 //            String msg = "生成增量代码覆盖率失败，请检查日志"+logUrl;
             cr = coverageReportDao.queryCoverageReportByUuid(uuid);
             robotUtils.checkBelong(cr.getGitUrl(), msg);
-            coverageReportDao.updateReportStatusByUUid(1,uuid);
+            coverageReportDao.updateReportStatusByUUid(1, uuid);
 
         }
-
     }
 
+    private void reportJob(String diffUuid,String fullUuid, String url, String userMail) throws Exception {
+        //先判断diffuuid是否完成单测
+        int count = 60;
+        CoverResult coverResult_Diff = getCoverResult(diffUuid);
+        while (coverResult_Diff.getCoverStatus() == 0) {
+            Thread.sleep(60000);
+            coverResult_Diff = getCoverResult(diffUuid);
+            count--;
+            if (count <= 0) {
+                log.info("uuid为" + diffUuid + "的轮询任务已经超时，结束轮询任务");
+                String logUrl = coverResult_Diff.toString();
+                String msg = "uuid为" + diffUuid + "的轮询任务已经超时，结束轮询任务" + logUrl;
+                CoverageReportEntity cr = coverageReportDao.queryCoverageReportByUuid(diffUuid);
+                robotUtils.checkBelong(cr.getGitUrl(), msg);
+                coverageReportDao.updateReportStatusByUUid(1, diffUuid);
+                return;
+            }
+        }
+        //再判断fullUuid是否完成单测
+        count = 60;
+        CoverResult coverResult_Full = getCoverResult(fullUuid);
+        while (coverResult_Full.getCoverStatus() == 0) {
+            Thread.sleep(60000);
+            coverResult_Full = getCoverResult(fullUuid);
+            count--;
+            if (count <= 0) {
+                log.info("uuid为" + fullUuid + "的轮询任务已经超时，结束轮询任务");
+                String logUrl = coverResult_Full.toString();
+                String msg = "uuid为" + fullUuid + "的轮询任务已经超时，结束轮询任务" + logUrl;
+                CoverageReportEntity cr = coverageReportDao.queryCoverageReportByUuid(fullUuid);
+                robotUtils.checkBelong(cr.getGitUrl(), msg);
+                coverageReportDao.updateReportStatusByUUid(1, fullUuid);
+                return;
+            }
+        }
+        
+        //todo 如果代码已经合并，git diff的数据为null时，此时应该不通知（先自己加判断，后续还是改入参会比较好）
+        CoverageReportEntity cr_diff = coverageReportDao.queryCoverageReportByUuid(diffUuid);
+        CoverageReportEntity cr_full = coverageReportDao.queryCoverageReportByUuid(fullUuid);
+        if (cr_diff.getErrMsg().equals("没有增量代码")) {
+            log.info(diffUuid + "没有增量代码");
+            //没有增量代码的话，无需机器人汇报
+            coverageReportDao.updateReportStatusByUUid(3, diffUuid);
+            coverageReportDao.updateReportStatusByUUid(3, fullUuid);
+            return;
+        }
+        //todo gitclone失败的报错先收敛到自己的群机器人观察一下
+        if (cr_diff.getRequestStatus() == 202||cr_full.getRequestStatus() == 202) {
+            robotUtils.robotReport(cr_diff.getUuid() + "的git clone失败，入参为" + cr_diff.getRequestInfo(), "https://hi-open.zhipin.com/open-apis/bot/hook/49fb1473329546b1a77b3ab731c0b279");
+            coverageReportDao.updateReportStatusByUUid(1, diffUuid);
+            coverageReportDao.updateReportStatusByUUid(1, fullUuid);
+            return;
+        }
+
+        //只有2个报告都是成功的，才发送机器人通知
+        if (coverResult_Diff.getCoverStatus() == 1&&coverResult_Full.getCoverStatus() == 1) {
+            log.info("uuid为" + diffUuid + "的报告生成成功，开始发送机器人消息至mr群");
+
+            String reportUrl_Diff = coverResult_Diff.getReportUrl();
+            String reportUrl_Full = coverResult_Full.getReportUrl();
+            cr_diff = coverageReportDao.queryCoverageReportByUuid(diffUuid);
+            String baseVersion = cr_diff.getBaseVersion();
+            String nowVersion = cr_diff.getNowVersion();
+            Double diffLineCoverage = coverResult_Diff.getLineCoverage();
+            Double fullLineCoverage = coverResult_Full.getLineCoverage();
+            String msg = robotUtils.buildSuccessMarkDownMsg(userMail, url, String.valueOf(diffLineCoverage), reportUrl_Diff, String.valueOf(fullLineCoverage), reportUrl_Full);
+//            String msg = "用户"+userMail+"的mr请求\\n"+url+"\\n单测覆盖率完成\\n"+"\\n增量代码单测的行覆盖率为"+lineCoverage+"；\\n具体报告可见"+reportUrl;
+            //先加一个搜索的判断
+            //这里需要把判断应用隶属于哪个群组的判断迁移到robotUtils中
+            robotUtils.checkBelong(cr_diff.getGitUrl(), msg);
+            coverageReportDao.updateReportStatusByUUid(1, diffUuid);
+            coverageReportDao.updateReportStatusByUUid(1, fullUuid);
+
+        } else if (coverResult_Diff.getCoverStatus() == -1||coverResult_Full.getCoverStatus() == -1) {
+            String logUrl = coverResult_Diff.toString();
+            String msg = robotUtils.buildFailMarkDownMsg(userMail, url, logUrl, logUrl);
+//            String msg = "生成增量代码覆盖率失败，请检查日志"+logUrl;
+            cr_diff = coverageReportDao.queryCoverageReportByUuid(diffUuid);
+            robotUtils.checkBelong(cr_diff.getGitUrl(), msg);
+            coverageReportDao.updateReportStatusByUUid(1, diffUuid);
+            coverageReportDao.updateReportStatusByUUid(1, fullUuid);
+
+        }
+    }
 
 
     private void mergeExec(List<String> ExecFiles, String NewFileName) {
@@ -837,7 +950,7 @@ public class CodeCovServiceImpl implements CodeCovService {
 
 
     @Override
-    public Boolean whiteList(String gitName){
+    public Boolean whiteList(String gitName) {
         for (String whiteListName : whiteListNames) {
             if (gitName.contains(whiteListName)) {
                 return true;
@@ -845,5 +958,122 @@ public class CodeCovServiceImpl implements CodeCovService {
         }
         return false;
     }
+
+    /**
+     * @return * @return java.lang.String
+     * @Description: 依据入参生成uuid的方法，幂等处理逻辑放到此处，同时把增量，全量计算判断都放一起
+     * @param: coverBaseWithOutUUidRequest
+     * @author panpeng
+     * @date 2023/9/13 17:16
+     */
+    @Override
+    public String createUidAndSave(CoverBaseWithOutUUidRequest cr) {
+        //幂等思路：10min内的重复请求都直接忽视，第一次请求存储到redis里，后续的请求全部忽视
+        String hashKey = String.valueOf(cr.hashCode());
+        if (redisUtil.hasKey(hashKey)) {
+            CoverBaseWithOutUUidRequest res = redisUtil.getCacheObject(hashKey);
+            String uuid = res.getUuid();
+            log.info("redis查询到有该hashcode，本次请求忽略"+hashKey);
+            log.info("重复请求不予以处理，uuid为"+uuid);
+            return uuid;
+        }
+        //缓存不存在的情况，生成一个10min的缓存
+        String uuid = String.valueOf(System.currentTimeMillis());
+        cr.setUuid(uuid);
+        //写入缓存
+        redisUtil.setCacheObject(hashKey, cr, 10L, TimeUnit.MINUTES);
+        //进入业务逻辑，落库
+        UnitCoverRequest unitCoverRequest = new UnitCoverRequest();
+        //如果type为null设置成全量执行      * 1、全量；2、增量
+        if (Objects.isNull(cr.getType())) {
+            unitCoverRequest.setType(1);
+            cr.setType(1);
+        }
+        unitCoverRequest.setUuid(uuid);
+        //如果对比分支为null，写成develop
+        if (Objects.isNull(cr.getBaseVersion())) {
+            unitCoverRequest.setBaseVersion("develop");
+        }
+        //入参全部打印到日志
+        log.info("uuid=" + uuid + "开始执行增量代码检查，入参为" + cr.toString());
+        //设置新的数据到unitCoverRequest中，入参，是否执行过机器人通知（否），是否为mr请求（是）
+
+        unitCoverRequest.setRequestInfo(cr.toString());
+        unitCoverRequest.setIsRobotReport(0);
+        unitCoverRequest.setMrRequest(1);
+        org.springframework.beans.BeanUtils.copyProperties(cr, unitCoverRequest);
+
+        unitCoverRequest.setMrUrl(cr.getUrl());
+        unitCoverRequest.setMrUserMail(cr.getUserMail());
+        //如果为增量代码覆盖，此时要先生成一个全局代码覆盖率进行落库，uuid进行修改，再落增量
+        if (unitCoverRequest.getType().equals(Constants.ReportType.DIFF.val())) {
+            //先入参全量，再入参增量，防止query时先跑全量
+            //进行全量覆盖
+            unitCoverRequest.setUuid(uuid + "_FULL");
+            //记得set type为1，不然也是增量
+            unitCoverRequest.setType(1);
+            //全量任务落库
+            triggerUnitCov(unitCoverRequest);
+            //进行增量覆盖
+            unitCoverRequest.setUuid(uuid + "_DIFF");
+            unitCoverRequest.setType(2);
+            //增量任务落库
+            triggerUnitCov(unitCoverRequest);
+            return uuid + "_DIFF";
+        }
+        triggerUnitCov(unitCoverRequest);
+        return uuid;
+    }
+
+    /**
+     * @return * @return boolean
+     * @Description: 把controll的前置判断迁移到这里处理
+     * @param: cr
+     * @author panpeng
+     * @date 2023/9/13 17:20
+     */
+    @Override
+    public boolean checkInRule(CoverBaseWithOutUUidRequest coverBaseWithOutUUidRequest) {
+        String giturl = coverBaseWithOutUUidRequest.getGitUrl();
+        if (!giturl.contains("git.kanzhun-inc.com/rd21/")) {
+            log.info("为非后端代码url，不进行增量代码覆盖率检查" + coverBaseWithOutUUidRequest);
+            log.info(giturl + "为非后端代码url，不进行增量代码覆盖率检查");
+            return false;
+        }
+        //加一个白名单，只对白名单进行单测检查
+        if (!whiteList(giturl)) {
+            log.info("为非白名单代码url，不进行增量代码覆盖率检查" + coverBaseWithOutUUidRequest);
+            log.info(giturl + "为非白名单代码url，不进行增量代码覆盖率检查");
+            return false;
+        }
+        //mrStatus非空判断
+        if (Objects.isNull(coverBaseWithOutUUidRequest.getMrStatus())) {
+            coverBaseWithOutUUidRequest.setMrStatus("merged");
+        }
+        //判断mr状态对不对
+        String mrStatus = coverBaseWithOutUUidRequest.getMrStatus();
+        if (mrStatus.contains("unapproved") || mrStatus.contains("closed") || mrStatus.contains("approved")) {
+            log.info(giturl + "非合并mr请求，不进行覆盖率检查");
+            return false;
+        }
+        log.info("判断通过");
+        return true;
+    }
+
+    /**
+     * @Description: 检查uuid的后缀是否为 _DIFF
+     * @param: uuid
+     * @return * @return java.lang.Boolean
+     * @author panpeng
+     * @date 2023/9/13 21:14
+    */
+
+    private Boolean isUuidEndWithDiff(String uuid){
+        if (uuid == null || uuid.length() < 5 || !uuid.endsWith("_DIFF")) {
+            return false;
+        }
+        return true;
+    }
+
 
 }

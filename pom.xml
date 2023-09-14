@@ -28,6 +28,8 @@
         <JAVA_HOME>/Library/Java/JavaVirtualMachines/jdk1.8.0_121.jdk/Contents/Home</JAVA_HOME>
         <log4j2.version>2.15.0</log4j2.version>
         <!--        <jackson.version>2.9.10.7</jackson.version>-->
+        <dozer.version>6.5.0</dozer.version>
+
     </properties>
 
     <dependencies>
@@ -83,6 +85,11 @@
             <groupId>org.mybatis.spring.boot</groupId>
             <artifactId>mybatis-spring-boot-starter</artifactId>
             <version>${mybatis-spring-boot}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-redis</artifactId>
+            <version>2.0.2.RELEASE</version>
         </dependency>
         <dependency>
             <groupId>org.projectlombok</groupId>
@@ -233,6 +240,18 @@
             <artifactId>mapper-spring-boot-starter</artifactId>
             <version>2.0.2</version>
         </dependency>
+        <dependency>
+            <groupId>org.testng</groupId>
+            <artifactId>testng</artifactId>
+            <version>6.10</version>
+            <scope>compile</scope>
+        </dependency>
+        <!-- 对象转换 -->
+        <dependency>
+            <groupId>com.github.dozermapper</groupId>
+            <artifactId>dozer-spring-boot-starter</artifactId>
+            <version>${dozer.version}</version>
+        </dependency>
 
     </dependencies>
 
@@ -245,6 +264,7 @@
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
+
         </dependencies>
     </dependencyManagement>
 

@@ -60,4 +60,7 @@ public class CoverBaseWithOutUUidRequest {
 
     private String mrStatus;
 
+    //新增uuid，方便缓存获取
+    private String uuid;
+
 }

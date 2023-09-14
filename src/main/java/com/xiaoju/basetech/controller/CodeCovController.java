@@ -41,6 +41,17 @@ public class CodeCovController {
      7。修改轮询方式，改为定时任务中轮询 over
 
      分母去掉一些枚举、工具类
+
+     0913 todo
+     1。增加幂等判断 done
+     2。增加延迟触发，减少因为未打包导致的单测报错 done
+     3。修改底层逻辑，需要同时生成增量单测&全量单测报告 done
+        设计思路
+        1。修改底层库表结构，在执行单测，生成报告时，同时生成2份报告，存储到一个uuid下（成本较高，改动较大）（放弃）
+        2。修改触发逻辑，在进行增量覆盖的时候，同时生成2个uuid，采用uuid+A uuid+D 来区分是否为增量覆盖率（改动成本较低，缺点是性能/硬盘空间占用双倍，在后期设计数据库查询时，还需要注意区别）采用
+
+
+     4。实现list接口进行分页返回结果
      */
 
     /**
@@ -51,51 +62,11 @@ public class CodeCovController {
      */
     @PostMapping(value = "/triggerUnitCoverTest")
     public HttpResult<Boolean> triggerUnitCoverTest(@RequestBody @Validated CoverBaseWithOutUUidRequest coverBaseWithOutUUidRequest) {
-        //加一个rd21组判断
-        String giturl = coverBaseWithOutUUidRequest.getGitUrl();
-        if (!giturl.contains("git.kanzhun-inc.com/rd21/")){
-            log.info("为非后端代码url，不进行增量代码覆盖率检查"+ coverBaseWithOutUUidRequest);
-            return HttpResult.build(501,giturl+"为非后端代码url，不进行增量代码覆盖率检查");
+        if (!codeCovService.checkInRule(coverBaseWithOutUUidRequest)){
+            log.info("不进行覆盖率检查");
+            return HttpResult.build(501,coverBaseWithOutUUidRequest.getGitUrl()+"checkInRule不通过，不进行覆盖率检查");
         }
-        //加一个白名单，只对白名单进行单测检查
-        if (!codeCovService.whiteList(giturl)){
-            log.info("为非白名单代码url，不进行增量代码覆盖率检查"+ coverBaseWithOutUUidRequest);
-            return HttpResult.build(502,giturl+"为非白名单代码url，不进行增量代码覆盖率检查");
-        }
-        //mrStatus非空判断
-        if (Objects.isNull(coverBaseWithOutUUidRequest.getMrStatus())){
-            coverBaseWithOutUUidRequest.setMrStatus("merged");
-        }
-        //判断mr状态对不对
-        String mrStatus = coverBaseWithOutUUidRequest.getMrStatus();
-        if (mrStatus.contains("unapproved")||mrStatus.contains("closed")||mrStatus.contains("approved")){
-            return HttpResult.build(503,giturl+"非合并mr请求，不进行覆盖率检查");
-        }
-        //uuid由时间戳生成
-        String uuid = String.valueOf(System.currentTimeMillis());
-        UnitCoverRequest unitCoverRequest = new UnitCoverRequest();
-        unitCoverRequest.setUuid(uuid);
-        //如果type为null设置成全量执行      * 1、全量；2、增量
-        if (Objects.isNull(coverBaseWithOutUUidRequest.getType())){
-            unitCoverRequest.setType(1);
-            coverBaseWithOutUUidRequest.setType(1);
-        }
-        //如果对比分支为null，写成develop
-        if (Objects.isNull(coverBaseWithOutUUidRequest.getBaseVersion())){
-            unitCoverRequest.setBaseVersion("develop");
-        }
-        //入参全部打印到日志
-        log.info("uuid=" +uuid+ "开始执行增量代码检查，入参为"+ coverBaseWithOutUUidRequest.toString());
-        //设置新的数据到unitCoverRequest中，入参，是否执行过机器人通知（否），是否为mr请求（是）
-
-        unitCoverRequest.setRequestInfo(coverBaseWithOutUUidRequest.toString());
-        unitCoverRequest.setIsRobotReport(0);
-        unitCoverRequest.setMrRequest(1);
-        BeanUtils.copyProperties(coverBaseWithOutUUidRequest,unitCoverRequest);
-
-        unitCoverRequest.setMrUrl(coverBaseWithOutUUidRequest.getUrl());
-        unitCoverRequest.setMrUserMail(coverBaseWithOutUUidRequest.getUserMail());
-        codeCovService.triggerUnitCov(unitCoverRequest);
+        String uuid = codeCovService.createUidAndSave(coverBaseWithOutUUidRequest);
         return HttpResult.build(200,uuid);
     }
 

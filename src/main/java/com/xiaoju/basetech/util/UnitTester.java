@@ -53,7 +53,6 @@ public class UnitTester {
 
         int exitCode;
         try {
-            //离谱，加个日志康康
             log.info("cmd命令拼接完成，如下：");
             log.info(Arrays.stream(cmd).toArray().toString());
             exitCode = CmdExecutor.executeCmd(cmd, UNITTEST_TIMEOUT);

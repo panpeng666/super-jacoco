@@ -97,4 +97,15 @@ public interface CodeCovService {
     Boolean whiteList(String gitName);
 
 
+    /**
+     * @Description: 依据入参生成uuid的方法，幂等处理逻辑放到此处
+     * @param: coverBaseWithOutUUidRequest
+     * @return * @return java.lang.String
+     * @author panpeng
+     * @date 2023/9/13 17:16
+    */
+    String createUidAndSave(CoverBaseWithOutUUidRequest coverBaseWithOutUUidRequest);
+
+
+    boolean checkInRule(CoverBaseWithOutUUidRequest coverBaseWithOutUUidRequest);
 }

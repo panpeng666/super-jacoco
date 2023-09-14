@@ -19,9 +19,7 @@ import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * @description:
- *  定时任务代码，定时捞取数据库的jobstatus，去执行覆盖率任务
- *
+ * @description: 定时任务代码，定时捞取数据库的jobstatus，去执行覆盖率任务
  * @author: charlynegaoweiwei
  * @time: 2020/4/26 7:45 PM
  */
@@ -41,24 +39,24 @@ public class CodeCoverageScheduleJob {
     private static AtomicInteger counter = new AtomicInteger(0);
 
     /**
-     这段代码创建了一个线程池 executor，并设置了一些配置参数。让我们逐个解释每个参数的含义：
-
-     2 和 2: 这是核心线程数和最大线程数，表示线程池中同时可以运行的线程数量。在这个例子中，线程池中始终保持两个线程，无论任务是否繁忙。
-
-     5 * 60: 这是线程的空闲时间超时时间，以秒为单位。如果一个线程在指定的时间内没有执行任何任务，那么它将被终止并从线程池中移除，以节省系统资源。
-
-     TimeUnit.SECONDS: 这是空闲时间超时的时间单位，这里设置为秒。
-
-     new SynchronousQueue<>(): 这是线程池使用的工作队列。在这个例子中，使用了一个同步队列，它没有容量限制，意味着它可以根据需要立即创建新线程来处理任务。
-
-     r -> new Thread(r, "Code-Coverage-Thread-pool" + counter.getAndIncrement()): 这是线程工厂，用于创建新的线程。在这个例子中，通过 lambda 表达式定义了一个线程工厂，它会创建一个新的线程，并为每个线程设置一个名称，名称以 "Code-Coverage-Thread-pool" 开头，后面加上一个递增的计数器。
-
-     通过以上配置，线程池 executor 将会维护两个核心线程，如果有更多的任务到达，它会创建额外的线程来处理任务，直到达到最大线程数。当线程空闲一段时间后，超过设定的空闲时间，它将被终止并从线程池中移除。新创建的线程会以特定的命名规则命名，方便调试和追踪。
-    */
+     * 这段代码创建了一个线程池 executor，并设置了一些配置参数。让我们逐个解释每个参数的含义：
+     * <p>
+     * 2 和 2: 这是核心线程数和最大线程数，表示线程池中同时可以运行的线程数量。在这个例子中，线程池中始终保持两个线程，无论任务是否繁忙。
+     * <p>
+     * 5 * 60: 这是线程的空闲时间超时时间，以秒为单位。如果一个线程在指定的时间内没有执行任何任务，那么它将被终止并从线程池中移除，以节省系统资源。
+     * <p>
+     * TimeUnit.SECONDS: 这是空闲时间超时的时间单位，这里设置为秒。
+     * <p>
+     * new SynchronousQueue<>(): 这是线程池使用的工作队列。在这个例子中，使用了一个同步队列，它没有容量限制，意味着它可以根据需要立即创建新线程来处理任务。
+     * <p>
+     * r -> new Thread(r, "Code-Coverage-Thread-pool" + counter.getAndIncrement()): 这是线程工厂，用于创建新的线程。在这个例子中，通过 lambda 表达式定义了一个线程工厂，它会创建一个新的线程，并为每个线程设置一个名称，名称以 "Code-Coverage-Thread-pool" 开头，后面加上一个递增的计数器。
+     * <p>
+     * 通过以上配置，线程池 executor 将会维护两个核心线程，如果有更多的任务到达，它会创建额外的线程来处理任务，直到达到最大线程数。当线程空闲一段时间后，超过设定的空闲时间，它将被终止并从线程池中移除。新创建的线程会以特定的命名规则命名，方便调试和追踪。
+     */
 
 //    private static ThreadPoolExecutor executor = new ThreadPoolExecutor(2, 2, 5 * 60, TimeUnit.SECONDS,
 //            new SynchronousQueue<>(), r -> new Thread(r, "Code-Coverage-Thread-pool" + counter.getAndIncrement()));
-    private static ThreadPoolExecutor executor = new ThreadPoolExecutor(10, 10, 5 * 60, TimeUnit.SECONDS,
+    private static ThreadPoolExecutor executor = new ThreadPoolExecutor(5, 5, 5 * 60, TimeUnit.SECONDS,
             new SynchronousQueue<>(), r -> new Thread(r, "Code-Coverage-Thread-pool" + counter.getAndIncrement()));
 
     /**
@@ -73,13 +71,18 @@ public class CodeCoverageScheduleJob {
                 Constants.CoverageFrom.UNIT.val(), 1);
         log.info("查询需要diff的数据{}条", resList.size());
         resList.forEach(o -> {
-
+            //todo 这里加一个依据creatTime判断的延迟启动
+            //todo 这里需要测试一下逻辑是否符合要求
+            if (!timeCheck(o.getCreateTime())) {
+                log.info("进程uuid为" + o.getUuid() + "的延迟判断未通过");
+                return;
+            }
             try {
                 int num = coverageReportDao.casUpdateByStatus(Constants.JobStatus.INITIAL.val(),
                         Constants.JobStatus.WAITING.val(), o.getUuid());
                 if (num > 0) {
                     //有未执行的代码下载任务，开始执行
-                    log.info("有未执行的代码下载任务，开始执行"+o.getUuid());
+                    log.info("有未执行的代码下载任务，开始执行" + o.getUuid());
                     executor.execute(() -> codeCovService.calculateUnitCover(o));
                 } else {
                     log.info("others execute task :{}", o.getUuid());
@@ -89,17 +92,19 @@ public class CodeCoverageScheduleJob {
                 coverageReportDao.casUpdateByStatus(Constants.JobStatus.WAITING.val(),
                         Constants.JobStatus.INITIAL.val(), o.getUuid());
             }
-        }
-        );
+        });
+
+
     }
 
+
     /**
+     * @return * @return void
      * @Description: 定时任务（60秒执行一次），检查mr触发的任务是否完成，是否进行了机器人报告
      * @param:
-     * @return * @return void
      * @author panpeng
      * @date 2023/7/12 17:28
-    */
+     */
     @Scheduled(fixedDelay = 60_000L, initialDelay = 10_000L)
     public void checkMRJobDone() {
 
@@ -128,8 +133,6 @@ public class CodeCoverageScheduleJob {
     }
 
 
-
-
     /**
      * 未执行完的任务， 超过120分钟时间任务状态未更新，将任务状态设置未初始化,status=0
      */
@@ -150,7 +153,7 @@ public class CodeCoverageScheduleJob {
     /**
      * 每五分钟从项目机器上拉取exec执行文件，计算环境的增量方法覆盖率
      */
-  //  @Scheduled(fixedDelay = 600_000L, initialDelay = 100_000L)
+    //  @Scheduled(fixedDelay = 600_000L, initialDelay = 100_000L)
     @Scheduled(fixedDelay = 300_000L, initialDelay = 300_000L)
     public void calculateEnvCov() {
         List<CoverageReportEntity> resList = coverageReportDao.queryCoverByStatus(Constants.JobStatus.SUCCESS.val(),
@@ -189,6 +192,28 @@ public class CodeCoverageScheduleJob {
                 log.error("uuid={}拉取exec文件异常", o.getUuid(), e);
             }
         });
+    }
+
+    /**
+     * @Description:   延迟启动单测检查的时间检查，按创建时间判断，大于5min后才能开始执行
+     * @param: createTime
+     * @return * @return java.lang.Boolean
+     * @author panpeng
+     * @date 2023/9/13 20:47
+    */
+    private Boolean timeCheck(Date createTime) {
+        log.info("获取到的时间为"+createTime.toString());
+        Date now = new Date();
+        log.info("当前时间为"+now.toString());
+        long timeDifference = now.getTime() - createTime.getTime();
+        long adjustedTimeDifference = timeDifference - (8 * 60 * 60 * 1000);
+        if (timeDifference >= 3 * 10 * 1000) {
+            log.info("当前时间比 o.getCreateTime() 的时间晚于3分钟");
+            return true;
+        } else {
+            log.info("当前时间比 o.getCreateTime() 的时间早于3分钟");
+            return false;
+        }
     }
 
 }

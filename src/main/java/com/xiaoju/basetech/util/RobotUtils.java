@@ -37,7 +37,7 @@ public class RobotUtils {
      */
     //todo 这里的逻辑太不优雅了，需要改动一下
 
-    public void robotReport(String msg,String robotUrl){
+    public  void robotReport(String msg, String robotUrl){
         log.info("进入机器人通知"+msg);
         String json = "{\"msg_type\":\"compressive_card\",\"content\":{\"compressiveCardContent\":\"{\\\"modules\\\":[{\\\"tag\\\":\\\"markdown\\\",\\\"content\\\":\\\""+msg+"\\\",\\\"textAlign\\\":\\\"left\\\"}],\\\"header\\\":{\\\"text\\\":{\\\"content\\\":\\\"super-jacoco报告\\\",\\\"tag\\\":\\\"plain_text\\\"},\\\"color\\\":\\\"blue\\\"}}\"}}";
 
@@ -55,7 +55,7 @@ public class RobotUtils {
      * @author panpeng
      * @date 2023/8/24 20:38
     */
-    public String buildSuccessMarkDownMsg(String user,String mrUrl,String result,String reportUrl){
+    public  String buildSuccessMarkDownMsg(String user, String mrUrl, String result, String reportUrl){
         if (Objects.isNull(user)||Objects.isNull(mrUrl)||Objects.isNull(reportUrl)||Objects.isNull(result)){
             log.error("构建机器人通知markDown文本时异常");
             return "";
@@ -65,7 +65,17 @@ public class RobotUtils {
         return msg;
     }
 
-    public String buildFailMarkDownMsg(String user,String mrUrl,String result,String reportUrl){
+    public  String buildSuccessMarkDownMsg(String user, String mrUrl, String diff_result, String diff_reportUrl,String full_result, String full_reportUrl){
+        if (Objects.isNull(user)||Objects.isNull(mrUrl)||Objects.isNull(diff_result)||Objects.isNull(diff_reportUrl)||Objects.isNull(full_result)||Objects.isNull(full_reportUrl)){
+            log.error("构建机器人通知markDown文本时异常");
+            return "";
+        }
+        String msg = "用户**"+user+"**的mr请求\\n[点击查看mr请求详情]("+mrUrl+")\\n单测增量覆盖率完成，结果为"+diff_result+"\\n[点击查看覆盖率报告]("+diff_reportUrl+")\\n单测全量覆盖率完成，结果为"+full_result+"\\n[点击查看覆盖率报告]("+full_reportUrl+")\\n";
+        log.info(msg);
+        return msg;
+    }
+
+    public  String buildFailMarkDownMsg(String user, String mrUrl, String result, String reportUrl){
         if (Objects.isNull(user)||Objects.isNull(mrUrl)||Objects.isNull(reportUrl)||Objects.isNull(result)){
             log.error("构建机器人通知markDown文本时异常");
             return "";
@@ -76,7 +86,7 @@ public class RobotUtils {
     }
 
 
-    public void checkBelong(String gitUrl,String msg){
+    public  void checkBelong(String gitUrl, String msg){
         if (isUser(gitUrl,msg)){
             return;
         }
@@ -85,7 +95,7 @@ public class RobotUtils {
         }
     }
 
-    public boolean isUser(String gitUrl,String msg){
+    public  boolean isUser(String gitUrl,String msg){
         for (String userName:userListNames){
             if (gitUrl.contains(userName)){
                 robotReport(msg,userRobotUrl);

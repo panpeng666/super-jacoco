@@ -78,6 +78,7 @@
         `now_version`,
         `now_local_path` ,
         `base_local_path`,
+        `create_time`,
         `from`,
         `log_file`,
         `request_info`,
@@ -96,6 +97,7 @@
         #{coverageReportEntity.nowVersion},
         #{coverageReportEntity.nowLocalPath},
         #{coverageReportEntity.baseLocalPath},
+        #{coverageReportEntity.createTime},
         #{coverageReportEntity.from},
         #{coverageReportEntity.logFile},
         #{coverageReportEntity.requestInfo},
@@ -103,7 +105,7 @@
         #{coverageReportEntity.mrUrl},
         #{coverageReportEntity.mrUserMail},
         #{coverageReportEntity.isRobotReport}
-                        )
+        )
     </insert>
 
 
