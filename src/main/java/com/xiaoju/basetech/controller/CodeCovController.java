@@ -1,6 +1,7 @@
 package com.xiaoju.basetech.controller;
 
 
+import com.google.common.collect.Lists;
 import com.xiaoju.basetech.entity.*;
 import com.xiaoju.basetech.service.CodeCovService;
 import com.xiaoju.basetech.util.CodeCloneExecutor;
@@ -14,6 +15,7 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
 import java.lang.reflect.InvocationTargetException;
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -150,6 +152,14 @@ public class CodeCovController {
         codeCovService.triggerEnvCovTest(envCoverRequest);
         return HttpResult.success();
 
+    }
+
+    //分页查询
+
+    @RequestMapping("/getResultList")
+    public HttpResult<List<CoverageReportEntity>>getUserIdOrderByPy( @RequestParam("page") int page, @RequestParam("size") int size) {
+        List<CoverageReportEntity> res = codeCovService.getResultList(page,size);
+        return HttpResult.success(res);
     }
 
 

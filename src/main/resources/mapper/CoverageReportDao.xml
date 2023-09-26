@@ -183,4 +183,15 @@
             </if>
         </where>
     </update>
+
+    <select id="getCoverageReportEntityList" parameterType="java.lang.Integer" resultMap="coverageReportEntity">
+        SELECT job_record_uuid,giturl,now_version,base_version,report_url,line_coverage,branch_coverage,mr_userMail,create_time FROM diff_coverage_report
+        <where>
+            request_status = 200
+        </where>
+        <if test="offset >= 0">
+            ORDER BY create_time DESC
+            LIMIT #{offset}, #{size}
+        </if>
+    </select>
 </mapper>

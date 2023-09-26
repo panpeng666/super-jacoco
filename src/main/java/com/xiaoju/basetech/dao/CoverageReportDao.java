@@ -66,5 +66,14 @@ public interface CoverageReportDao {
     int casUpdateStatusById(Integer id, Integer requestStatus, Integer expectedStatus);
 
 
+    /**
+     * @Description: 依据偏移量批量查询（按时间倒序查询）
+     * @param: offset
+     * @param: size
+     * @return * @return java.util.List<com.xiaoju.basetech.entity.CoverageReportEntity>
+     * @author panpeng
+     * @date 2023/9/19 14:53
+    */
+    List<CoverageReportEntity> getCoverageReportEntityList(int offset,int size);
 
 }

@@ -1,32 +1,37 @@
-//package com.xiaoju.basetech.util;
-//
-//import com.xiaoju.basetech.BaseTest;
-//import com.xiaoju.basetech.entity.CoverBaseWithOutUUidRequest;
-//import lombok.extern.log4j.Log4j;
-//import lombok.extern.slf4j.Slf4j;
-//import org.junit.Test;
-//import org.junit.runner.RunWith;
-//import org.springframework.boot.test.context.SpringBootTest;
-//import org.springframework.data.redis.core.RedisTemplate;
-//import org.springframework.test.context.junit4.SpringRunner;
-//
-//import javax.annotation.Resource;
-//
-//import java.util.concurrent.TimeUnit;
-//
-//import static org.junit.Assert.*;
-//
-///**
-// * @author: panpeng
-// * @Title: RobotUtilsTest
-// * @ProjectName: super-jacoco_2023
-// * @Description:
-// * @date: 2023/8/24 20:06
-// */
-//
-//@Slf4j
-//public class RobotUtilsTest extends BaseTest {
-//
+package com.xiaoju.basetech.util;
+
+import com.xiaoju.basetech.BaseTest;
+import com.xiaoju.basetech.entity.CoverBaseWithOutUUidRequest;
+import com.xiaoju.basetech.entity.CoverageReportEntity;
+import com.xiaoju.basetech.service.CodeCovService;
+import lombok.extern.log4j.Log4j;
+import lombok.extern.slf4j.Slf4j;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.test.context.junit4.SpringRunner;
+
+import javax.annotation.Resource;
+
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+
+import static org.junit.Assert.*;
+
+/**
+ * @author: panpeng
+ * @Title: RobotUtilsTest
+ * @ProjectName: super-jacoco_2023
+ * @Description:
+ * @date: 2023/8/24 20:06
+ */
+
+@Slf4j
+public class RobotUtilsTest extends BaseTest {
+    @Resource
+    CodeCovService codeCovService;
+
 //    @Resource
 //    RedisUtil redisUtil;
 //    @Resource
@@ -62,4 +67,9 @@
 //        log.info(cr.toString());
 //    }
 //
-//}
+//    @Test
+//    public void test(){
+//        List<CoverageReportEntity> res = codeCovService.getResultList(1,10);
+//        System.out.println(res);
+//    }
+}

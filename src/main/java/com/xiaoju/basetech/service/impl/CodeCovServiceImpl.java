@@ -10,6 +10,7 @@ import com.xiaoju.basetech.util.*;
 import jodd.io.FileUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.beanutils.BeanUtils;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.tomcat.jni.Time;
 import org.jacoco.core.tools.ExecFileLoader;
 import org.jsoup.Jsoup;
@@ -1075,5 +1076,47 @@ public class CodeCovServiceImpl implements CodeCovService {
         return true;
     }
 
+
+    @Override
+    public List<CoverageReportEntity> getResultList(int page,int size){
+        List<CoverageReportEntity> results =new ArrayList<>();
+        try {
+            //异常值处理
+            if (page < 0) {
+                page = 0;
+            }
+            if (size < 0) {
+                size = 0;
+            }
+            results = coverageReportDao.getCoverageReportEntityList(getStart(page,size),size);
+            if (CollectionUtils.isNotEmpty(results)) {
+                return results;
+            }
+        }catch (Exception e){
+            log.info("分页查询异常exception",e);
+        }
+        return results;
+    }
+
+    /**
+     * @Description: 偏移量计算
+     * @param: pageNo
+     * @param: pageSize
+     * @return * @return int
+     * @author panpeng
+     * @date 2023/9/19 14:56
+    */
+
+    private  int getStart(int pageNo, int pageSize) {
+        if (pageNo < 1) {
+            pageNo = 1;
+        }
+
+        if (pageSize < 1) {
+            pageSize = 0;
+        }
+
+        return (pageNo - 1) * pageSize;
+    }
 
 }

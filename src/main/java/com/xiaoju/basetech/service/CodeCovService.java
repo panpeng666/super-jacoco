@@ -2,6 +2,8 @@ package com.xiaoju.basetech.service;
 
 import com.xiaoju.basetech.entity.*;
 
+import java.util.List;
+
 
 /**
  * @author didi
@@ -108,4 +110,7 @@ public interface CodeCovService {
 
 
     boolean checkInRule(CoverBaseWithOutUUidRequest coverBaseWithOutUUidRequest);
+
+    List<CoverageReportEntity> getResultList(int page,int size);
+
 }
