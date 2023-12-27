@@ -26,7 +26,7 @@ import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
-
+import java.util.regex.*;
 import static com.xiaoju.basetech.util.Constants.*;
 
 
@@ -837,8 +837,9 @@ public class CodeCovServiceImpl implements CodeCovService {
             coverageReportDao.updateReportStatusByUUid(1, uuid);
 
         } else if (coverResult.getCoverStatus() == -1) {
-            String logUrl = coverResult.toString();
-            String msg = robotUtils.buildFailMarkDownMsg(userMail, url, logUrl, logUrl);
+
+            String logUrl = coverResult.getReportUrl();
+            String msg = robotUtils.buildFailMarkDownMsg(userMail, url, coverResult.getErrMsg(), logUrl);
 //            String msg = "生成增量代码覆盖率失败，请检查日志"+logUrl;
             cr = coverageReportDao.queryCoverageReportByUuid(uuid);
             robotUtils.checkBelong(cr.getGitUrl(), msg);
@@ -902,17 +903,11 @@ public class CodeCovServiceImpl implements CodeCovService {
         }
 
         //只有2个报告都是成功的，才发送机器人通知
+        //先生成机器人通知的msg，再发送通知
         if (coverResult_Diff.getCoverStatus() == 1&&coverResult_Full.getCoverStatus() == 1) {
             log.info("uuid为" + diffUuid + "的报告生成成功，开始发送机器人消息至mr群");
-
-            String reportUrl_Diff = coverResult_Diff.getReportUrl();
-            String reportUrl_Full = coverResult_Full.getReportUrl();
-            cr_diff = coverageReportDao.queryCoverageReportByUuid(diffUuid);
-            String baseVersion = cr_diff.getBaseVersion();
-            String nowVersion = cr_diff.getNowVersion();
-            Double diffLineCoverage = coverResult_Diff.getLineCoverage();
-            Double fullLineCoverage = coverResult_Full.getLineCoverage();
-            String msg = robotUtils.buildSuccessMarkDownMsg(userMail, url, String.valueOf(diffLineCoverage), reportUrl_Diff, String.valueOf(fullLineCoverage), reportUrl_Full);
+            //构建通知消息
+            String msg = robotUtils.buildSuccessMarkDownMsg(cr_diff,cr_full);
 //            String msg = "用户"+userMail+"的mr请求\\n"+url+"\\n单测覆盖率完成\\n"+"\\n增量代码单测的行覆盖率为"+lineCoverage+"；\\n具体报告可见"+reportUrl;
             //先加一个搜索的判断
             //这里需要把判断应用隶属于哪个群组的判断迁移到robotUtils中
@@ -921,14 +916,18 @@ public class CodeCovServiceImpl implements CodeCovService {
             coverageReportDao.updateReportStatusByUUid(1, fullUuid);
 
         } else if (coverResult_Diff.getCoverStatus() == -1||coverResult_Full.getCoverStatus() == -1) {
-            String logUrl = coverResult_Diff.toString();
-            String msg = robotUtils.buildFailMarkDownMsg(userMail, url, logUrl, logUrl);
+            String msg;
+            if(coverResult_Diff.getCoverStatus() == -1){
+                msg = robotUtils.buildFailMarkDownMsg(cr_diff);
+            }else {
+                msg = robotUtils.buildFailMarkDownMsg(cr_full);
+            }
+
 //            String msg = "生成增量代码覆盖率失败，请检查日志"+logUrl;
             cr_diff = coverageReportDao.queryCoverageReportByUuid(diffUuid);
             robotUtils.checkBelong(cr_diff.getGitUrl(), msg);
             coverageReportDao.updateReportStatusByUUid(1, diffUuid);
             coverageReportDao.updateReportStatusByUUid(1, fullUuid);
-
         }
     }
 
@@ -990,7 +989,10 @@ public class CodeCovServiceImpl implements CodeCovService {
             unitCoverRequest.setType(1);
             cr.setType(1);
         }
+        //todo 加一个获取应用名称的方法，解析giturl
+        String gitName = getGitName(cr.getGitUrl());
         unitCoverRequest.setUuid(uuid);
+        unitCoverRequest.setGitName(gitName);
         //如果对比分支为null，写成develop
         if (Objects.isNull(cr.getBaseVersion())) {
             unitCoverRequest.setBaseVersion("develop");
@@ -1117,6 +1119,25 @@ public class CodeCovServiceImpl implements CodeCovService {
         }
 
         return (pageNo - 1) * pageSize;
+    }
+    /**
+     * @Description: 获取giturl的git工程名称
+     * @param: gitUrl
+     * @return * @return java.lang.String
+     * @author panpeng
+     * @date 2023/10/12 20:25
+    */
+    private static String getGitName(String gitUrl) {
+        String pattern = "([^/]+)\\.git$";
+        Pattern r = Pattern.compile(pattern);
+        Matcher m = r.matcher(gitUrl);
+
+        if (m.find()) {
+            return m.group(1);
+        } else {
+            log.info(gitUrl+"获取git工程名称失败");
+            return null;
+        }
     }
 
 }

@@ -1,5 +1,6 @@
 package com.xiaoju.basetech.util;
 
+import com.xiaoju.basetech.entity.CoverageReportEntity;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -35,7 +36,7 @@ public class RobotUtils {
      * 发送msg通知到对应的群机器人
      * @param msg
      */
-    //todo 这里的逻辑太不优雅了，需要改动一下
+    //todo 这里的逻辑太不优雅了，应该使用对象传递，而不是一个个参数传递
 
     public  void robotReport(String msg, String robotUrl){
         log.info("进入机器人通知"+msg);
@@ -65,26 +66,71 @@ public class RobotUtils {
         return msg;
     }
 
-    public  String buildSuccessMarkDownMsg(String user, String mrUrl, String diff_result, String diff_reportUrl,String full_result, String full_reportUrl){
-        if (Objects.isNull(user)||Objects.isNull(mrUrl)||Objects.isNull(diff_result)||Objects.isNull(diff_reportUrl)||Objects.isNull(full_result)||Objects.isNull(full_reportUrl)){
+    public  String buildSuccessMarkDownMsg(String user, String mrUrl,String gitName,String commit, String diff_result, String diff_reportUrl,String full_result, String full_reportUrl){
+        if (Objects.isNull(user)||Objects.isNull(mrUrl)||Objects.isNull(diff_result)||Objects.isNull(diff_reportUrl)||Objects.isNull(full_result)||Objects.isNull(full_reportUrl)||Objects.isNull(gitName)||Objects.isNull(commit)){
             log.error("构建机器人通知markDown文本时异常");
             return "";
         }
-        String msg = "用户**"+user+"**的mr请求\\n[点击查看mr请求详情]("+mrUrl+")\\n单测增量覆盖率完成，结果为"+diff_result+"\\n[点击查看覆盖率报告]("+diff_reportUrl+")\\n单测全量覆盖率完成，结果为"+full_result+"\\n[点击查看覆盖率报告]("+full_reportUrl+")\\n";
+        String msg = "**"+gitName+"**工程的**"+commit+"**分支\\n"+"用户**"+user+"**的mr请求\\n[点击查看mr请求详情]("+mrUrl+")\\n单测增量覆盖率完成，结果为"+diff_result+"\\n[点击查看覆盖率报告]("+diff_reportUrl+")\\n单测全量覆盖率完成，结果为"+full_result+"\\n[点击查看覆盖率报告]("+full_reportUrl+")\\n";
         log.info(msg);
         return msg;
     }
 
-    public  String buildFailMarkDownMsg(String user, String mrUrl, String result, String reportUrl){
-        if (Objects.isNull(user)||Objects.isNull(mrUrl)||Objects.isNull(reportUrl)||Objects.isNull(result)){
+    public  String buildFailMarkDownMsg(String user, String mrUrl ,String gitName,String commit,String result, String reportUrl){
+        if (Objects.isNull(user)||Objects.isNull(mrUrl)||Objects.isNull(reportUrl)||Objects.isNull(result)||Objects.isNull(gitName)||Objects.isNull(commit)){
             log.error("构建机器人通知markDown文本时异常");
             return "";
         }
-        String msg = "用户**"+user+"**的mr请求\\n[点击查看mr请求详情]("+mrUrl+")\\n单测增量覆盖率执行失败，结果为"+result+"\\n[点击查看报错日志]("+reportUrl+")\\n";
+        String msg = "**"+gitName+"**工程的**"+commit+"**分支\\n"+"用户**"+user+"**的mr请求\\n[点击查看mr请求详情]("+mrUrl+")\\n单测增量覆盖率执行失败，原因为"+result+"\\n[点击查看报错日志]("+reportUrl+")\\n";
         log.info(msg);
         return msg;
     }
 
+    /**
+     * @Description: 改成对象入参，减少后续改动风险
+     * @param: cr_diff
+     * @param: cr_full
+     * @return * @return java.lang.String
+     * @author panpeng
+     * @date 2023/10/13 15:39
+    */
+    public  String buildSuccessMarkDownMsg(CoverageReportEntity cr_diff,CoverageReportEntity cr_full){
+        String user = cr_diff.getMrUserMail();
+        String mrUrl = cr_diff.getGitUrl();
+        String diff_result = String.valueOf(cr_diff.getBranchCoverage());
+        String full_result = String.valueOf(cr_full.getBranchCoverage());
+        String diff_reportUrl = cr_diff.getReportUrl();
+        String full_reportUrl = cr_full.getReportUrl();
+        //新增git工程，commit分支的消息通知
+        String gitName = cr_diff.getGitName();
+        String commit = cr_diff.getNowVersion();
+        if (Objects.isNull(user)||Objects.isNull(mrUrl)||Objects.isNull(diff_result)||Objects.isNull(diff_reportUrl)||Objects.isNull(full_result)||Objects.isNull(full_reportUrl)||Objects.isNull(gitName)||Objects.isNull(commit)){
+            log.error("构建机器人通知markDown文本时异常");
+            return "";
+        }
+        String msg = "**"+gitName+"**工程的**"+commit+"**分支\\n"+"用户**"+user+"**的mr请求\\n[点击查看mr请求详情]("+mrUrl+")\\n单测增量覆盖率完成，结果为"+diff_result+"\\n[点击查看覆盖率报告]("+diff_reportUrl+")\\n单测全量覆盖率完成，结果为"+full_result+"\\n[点击查看覆盖率报告]("+full_reportUrl+")\\n";
+        log.info(msg);
+        return msg;
+    }
+
+    public  String buildFailMarkDownMsg(CoverageReportEntity cr){
+        String user = cr.getMrUserMail();
+        String mrUrl = cr.getGitUrl();
+        String gitName = cr.getGitName();
+        String commit = cr.getNowVersion();
+        String reportUrl = cr.getLogFile();
+        String result = cr.getErrMsg();
+
+
+
+        if (Objects.isNull(user)||Objects.isNull(mrUrl)||Objects.isNull(reportUrl)||Objects.isNull(result)||Objects.isNull(gitName)||Objects.isNull(commit)){
+            log.error("构建机器人通知markDown文本时异常");
+            return "";
+        }
+        String msg = "**"+gitName+"**工程的**"+commit+"**分支\\n"+"用户**"+user+"**的mr请求\\n[点击查看mr请求详情]("+mrUrl+")\\n单测增量覆盖率执行失败，原因为"+result+"\\n[点击查看报错日志]("+reportUrl+")\\n";
+        log.info(msg);
+        return msg;
+    }
 
     public  void checkBelong(String gitUrl, String msg){
         if (isUser(gitUrl,msg)){

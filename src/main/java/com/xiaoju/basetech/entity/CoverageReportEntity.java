@@ -16,6 +16,7 @@ public class CoverageReportEntity {
     private Integer id;
     private String uuid;
     private String gitUrl;
+    private String gitName;
     private String baseVersion;
     private String nowVersion;
     /**

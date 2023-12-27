@@ -7,6 +7,7 @@
         <result column="request_status" property="requestStatus"/>
         <result column="type" property="type"/>
         <result column="giturl" property="gitUrl"/>
+        <result column="gitName" property="gitName"/>
         <result column="base_version" property="baseVersion"/>
         <result column="now_version" property="nowVersion"/>
         <result column="sub_module" property="subModule"/>
@@ -72,6 +73,7 @@
         `request_status`,
         `type`,
         `giturl`,
+        `gitName`,
         `err_msg`,
         `sub_module`,
         `base_version`,
@@ -91,6 +93,7 @@
         #{coverageReportEntity.requestStatus},
         #{coverageReportEntity.type},
         #{coverageReportEntity.gitUrl},
+        #{coverageReportEntity.gitName},
         #{coverageReportEntity.errMsg},
         #{coverageReportEntity.subModule},
         #{coverageReportEntity.baseVersion},
@@ -185,7 +188,7 @@
     </update>
 
     <select id="getCoverageReportEntityList" parameterType="java.lang.Integer" resultMap="coverageReportEntity">
-        SELECT job_record_uuid,giturl,now_version,base_version,report_url,line_coverage,branch_coverage,mr_userMail,create_time FROM diff_coverage_report
+        SELECT job_record_uuid,giturl,gitName,now_version,base_version,report_url,line_coverage,branch_coverage,mr_userMail,create_time FROM diff_coverage_report
         <where>
             request_status = 200
         </where>

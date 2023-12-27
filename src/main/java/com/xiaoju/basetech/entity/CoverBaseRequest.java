@@ -23,6 +23,11 @@ public class CoverBaseRequest {
     @NotBlank(message = "gitUrl不能为空")
     private String gitUrl;
 
+    /**
+     * git工程名称
+    */
+    private String gitName;
+
     //@NotBlank(message = "baseVersion不能为空")
     private String baseVersion="master";
 

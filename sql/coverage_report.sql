@@ -4,6 +4,7 @@ CREATE TABLE `diff_coverage_report` (
   `job_record_uuid` varchar(80) NOT NULL COMMENT '请求唯一标识码',
   `request_status` int(10) NOT NULL COMMENT '请求执行状态,1=下载代码成功,2=生成diffmethod成功，3=生成报告成功,-1=执行出错',
   `giturl` varchar(80) NOT NULL COMMENT 'git 地址',
+  `gitName` varchar(80) NOT NULL COMMENT 'git 应用名称',
   `now_version` varchar(80) NOT NULL COMMENT '本次提交的commidId',
   `base_version` varchar(80) NOT NULL COMMENT '比较的基准commitId',
   `diffmethod` mediumtext COMMENT '增量代码的diff方法集合',
