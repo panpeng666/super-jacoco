@@ -23,6 +23,8 @@ public class RobotUtils {
     private String[] userListNames;
     @Value("${search.server}")
     private String[] searchListNames;
+    @Value("${cockatiel.server}")
+    private String[] cockatielListNames;
 
 
 
@@ -31,6 +33,9 @@ public class RobotUtils {
 
     @Value("${search.roboturl}")
     private String searchRobotUrl;
+
+    @Value("${cockatiel.roboturl}")
+    private String cockatielRobotUrl;
 
     /**
      * 发送msg通知到对应的群机器人
@@ -139,6 +144,9 @@ public class RobotUtils {
         if (isSearch(gitUrl,msg)){
             return;
         }
+        if (isCockatiel(gitUrl,msg)){
+            return;
+        }
     }
 
     public  boolean isUser(String gitUrl,String msg){
@@ -154,6 +162,16 @@ public class RobotUtils {
         for (String searchName:searchListNames){
             if (gitUrl.contains(searchName)){
                 robotReport(msg,searchRobotUrl);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public boolean isCockatiel(String gitUrl,String msg){
+        for (String cockatielName:cockatielListNames){
+            if (gitUrl.contains(cockatielName)){
+                robotReport(msg,cockatielRobotUrl);
                 return true;
             }
         }

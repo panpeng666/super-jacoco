@@ -839,9 +839,9 @@ public class CodeCovServiceImpl implements CodeCovService {
         } else if (coverResult.getCoverStatus() == -1) {
 
             String logUrl = coverResult.getReportUrl();
-            String msg = robotUtils.buildFailMarkDownMsg(userMail, url, coverResult.getErrMsg(), logUrl);
 //            String msg = "生成增量代码覆盖率失败，请检查日志"+logUrl;
             cr = coverageReportDao.queryCoverageReportByUuid(uuid);
+            String msg = robotUtils.buildFailMarkDownMsg(cr);
             robotUtils.checkBelong(cr.getGitUrl(), msg);
             coverageReportDao.updateReportStatusByUUid(1, uuid);
 
