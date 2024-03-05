@@ -41,6 +41,10 @@ public class Constants {
         UNITTEST_DONE(106, "执行单元测试成功"),
         UNITTEST_FAIL(206, "执行单元测试失败"),
 
+        UNITTESTREPORTEXECUTING(16, "单元测试执行中"),
+        UNITTEST_REPORT_DONE(116, "执行单元测试report成功"),
+        UNITTEST_REPORT_FAIL(216, "执行单元测试report失败"),
+
         REPORTGENERATING(7, "生成报告中"),
         GENERATEREPORT_DONE(107, "生成报告成功"),
         GENERATEREPORT_FAIL(207, "生成报告失败"),

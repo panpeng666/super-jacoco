@@ -10,13 +10,17 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
+import org.springframework.ui.ModelMap;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
 import java.lang.reflect.InvocationTargetException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import org.springframework.ui.Model;
+import org.springframework.web.servlet.ModelAndView;
 
 /**
  * @author guojinqiong
@@ -30,31 +34,6 @@ public class CodeCovController {
     private CodeCovService codeCovService;
     @Autowired
     private CodeCloneExecutor codeCloneExecutor;
-
-    //todo 需要实现的功能
-    /**
-     0。写一个影子应用，将原有的服务器的请求转发过来 over
-     1。用户中心的应用要给对应的机器人发送报告 over
-     2。单测失败的代码应该进行清理
-     3。用户中心dubbo应用要修改保证不启动应用 over（ 服务器端也需要写轮询kill）
-     4。入参的用户和请求应该落库保存 over
-     5。需要实现一个清理任务状态的修复脚本，防止卡住
-     6。同上，还需要对运行的服务进行监控
-     7。修改轮询方式，改为定时任务中轮询 over
-
-     分母去掉一些枚举、工具类
-
-     0913 todo
-     1。增加幂等判断 done
-     2。增加延迟触发，减少因为未打包导致的单测报错 done
-     3。修改底层逻辑，需要同时生成增量单测&全量单测报告 done
-        设计思路
-        1。修改底层库表结构，在执行单测，生成报告时，同时生成2份报告，存储到一个uuid下（成本较高，改动较大）（放弃）
-        2。修改触发逻辑，在进行增量覆盖的时候，同时生成2个uuid，采用uuid+A uuid+D 来区分是否为增量覆盖率（改动成本较低，缺点是性能/硬盘空间占用双倍，在后期设计数据库查询时，还需要注意区别）采用
-
-
-     4。实现list接口进行分页返回结果
-     */
 
     /**
      * 触发单元测试diff覆盖率，不入参uuid
@@ -162,5 +141,49 @@ public class CodeCovController {
         return HttpResult.success(res);
     }
 
+
+    /**
+     *  单元测试结果展示html
+     * @param uuid
+     * @return
+     */
+
+    @RequestMapping(value ="/UnitTestResult", method = RequestMethod.GET)
+    public ModelAndView unitTestResult(@RequestParam("uuid") String uuid){
+        UnitTestResultEntity u = codeCovService.queryResById(uuid);
+        if (Objects.nonNull(u.getLogPath())&&u.getLogPath().equals("ERROR")){
+            log.error("生成单元测试报告失败，请检查+uuid="+uuid);
+        }
+        ModelAndView modelAndView = new ModelAndView();
+        //组装module
+        modelAndView.addObject("totalCases", u.getCaseNum());
+        modelAndView.addObject("successes", u.getSuccessNum());
+        modelAndView.addObject("failures", u.getFailNum());
+        modelAndView.addObject("skips", u.getSkipNum());
+        modelAndView.addObject("passRate", u.getPassRate());
+
+        //处理子模块链接
+        List<String> modulePaths = u.getModulePathList();
+        List<LinkDto> links = new ArrayList<>();
+        for (String path : modulePaths) {
+            links.add(new LinkDto(path));
+        }
+        modelAndView.addObject("links", links);
+        modelAndView.setViewName("UnitTestResult");
+        return modelAndView;
+    }
+
+    // LinkDto 类用来包装每个链接的信息
+    static class LinkDto {
+        private final String url;
+
+        public LinkDto(String url) {
+            this.url = url;
+        }
+
+        public String getUrl() {
+            return url;
+        }
+    }
 
 }

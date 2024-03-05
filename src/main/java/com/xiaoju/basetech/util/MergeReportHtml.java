@@ -11,16 +11,19 @@ import java.io.IOException;
 import java.util.ArrayList;
 
 /**
- * @description:
+ * @description:  定义一个名为MergeReportHtml的公共类，用于合并多个JaCoCo覆盖率报告生成一个HTML格式的汇总报告
  * @author: gaoweiwei_v
  * @time: 2019/12/12 8:41 AM
  */
 public class MergeReportHtml {
+    // 定义一个静态方法mergeHtml，它接受一个包含多个HTML文件路径的ArrayList和一个目标输出文件路径作为参数
     public static Integer[] mergeHtml(ArrayList<String> fileList, String destFile) {
+        // 初始化一个大小为3的结果数组，用于存放处理结果状态码及两个覆盖率指标
         Integer[] result=new Integer[3];
         result[0]=0;
         result[1]=-1;
         result[2]=-1;
+        // 创建一个JaCoCo覆盖率汇总报告的HTML模板字符串
         String htmlSchema = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
                 "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Strict//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd\">\n" +
                 "<html xmlns=\"http://www.w3.org/1999/xhtml\" lang=\"en\">\n" +
@@ -60,7 +63,10 @@ public class MergeReportHtml {
                 "</body>\n" +
                 "</html>";
         try {
+            // 使用Jsoup库解析HTML模板字符串创建一个Document对象
             Document docSchema = Jsoup.parse(htmlSchema);
+            // 初始化一个长度为15的Integer数组，用于存储合并后各项统计数据
+            // 初始化所有统计计数器为0
             Integer[] array = new Integer[15];
             array[0] = 0;
             array[1] = 0;
@@ -77,19 +83,27 @@ public class MergeReportHtml {
             array[12] = 0;
             array[13] = 0;
             array[14] = 0;
+            // 获取并操作模板中的tbody元素
             Element tbodySchema = docSchema.getElementsByTag("table").first();
+            // 遍历输入的HTML文件列表
             for (String fileName : fileList) {
+                // 根据文件名构建实际文件对象，并提取模块名称
                 File file=new File(fileName);
                 String module=new File(file.getParent()).getName();
+                // 解析单个覆盖率报告文件内容到Document对象
                 Document docc = Jsoup.parse(new File(fileName), "UTF-8", "");
+                // 将相对链接转换为基于模块的绝对链接
                 Document doc=Jsoup.parse(docc.toString().replace("<a href=\"","<a href=\""+module+"/"));
+                // 如果当前文档没有tbody标签，则跳过此文件
                 if(doc.getElementsByTag("tbody").first()==null){
                     continue;
                 }
+                // 将单个报告的tbody内容合并到汇总报告中
                 Elements trs = doc.getElementsByTag("tbody").first().getElementsByTag("tr");
                 for (Element ele : trs) {
                     tbodySchema.getElementsByTag("tbody").first().append(ele.html());
                 }
+                // 提取并累加各个统计指标
                 String[] a = doc.getElementsByTag("tfoot").first().child(0).text().split(" ");
                 array[1] = array[1] + Integer.parseInt(a[1].replace(",", ""));
                 array[2] = array[2] + Integer.parseInt(a[3].replace(",", ""));
@@ -106,18 +120,22 @@ public class MergeReportHtml {
                 array[13] = array[13] + Integer.parseInt(a[15].replace(",", ""));
                 array[14] = array[14] + Integer.parseInt(a[16].replace(",", ""));
             }
+            // 对于某些可能为0的统计项进行修正，避免除以零错误
             if(array[2]==0){
                 array[1]=1;
                 array[2]=1;
             }
+            // 对于某些可能为0的统计项进行修正，避免除以零错误
             if(array[5]==0){
                 array[4]=1;
                 array[5]=1;
             }
+            // 对于某些可能为0的统计项进行修正，避免除以零错误
             if(array[10]==0){
                 array[9]=1;
                 array[10]=1;
             }
+            // 构建汇总报告的总计行，并添加到tfoot部分
             String tfoot = "         <tr>\n" +
                     "                <td>Total</td>\n" +
                     "                <td class=\"bar\">" + array[1] + " of " + array[2] + "</td>\n" +
@@ -134,12 +152,14 @@ public class MergeReportHtml {
                     "                <td class=\"ctr2\">" + array[14] + "</td>\n" +
                     "            </tr>\n";
             tbodySchema.getElementsByTag("tfoot").first().append(tfoot);
+            // 将合并后的汇总报告写入目标文件
             FileWriter writer = new FileWriter(destFile);
             writer.write(docSchema.toString());
             writer.flush();
+            // 更新结果数组：设置状态码为成功（1），并将两个覆盖率指标放入结果数组
             result[0]=1;
-            result[1]=(array[5]-array[4])*100/array[5];
-            result[2]=(array[10]-array[9])*100/array[10];
+            result[1]=(array[5]-array[4])*100/array[5];// 计算分支覆盖率
+            result[2]=(array[10]-array[9])*100/array[10];// 计算行覆盖率
         } catch (IOException e) {
             e.printStackTrace();
         }

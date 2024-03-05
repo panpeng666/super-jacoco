@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>单元测试结果展示</title>
+    <style>
+        table, th, td {
+            border: 1px solid black;
+            border-collapse: collapse;
+            padding: 5px;
+        }
+    </style>
+</head>
+<body>
+
+<h1>单元测试结果汇总</h1>
+
+<table>
+    <tr>
+        <th>总case数</th>
+        <th>成功数</th>
+        <th>失败数</th>
+        <th>跳过数</th>
+        <th>通过率（%）</th>
+    </tr>
+    <tr>
+        <td th:text="${totalCases}">6</td>
+        <td th:text="${successes}">6</td>
+        <td th:text="${failures}">6</td>
+        <td th:text="${skips}">6</td>
+        <td th:text="${passRate}">0.6</td>
+    </tr>
+</table>
+
+<h2>子模块报告链接</h2>
+<ul>
+    <li th:each="link : ${links}">
+        <a th:href="@{${link.url}}" th:text="${link.url}"></a>
+    </li>
+</ul>
+
+</body>
+</html>

@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.xiaoju.basetech.dao.UnitTestResultDao"> <!-- 定义对应的Mapper接口全限定名 -->
+    <resultMap id="unitTestResultEntity" type="com.xiaoju.basetech.entity.UnitTestResultEntity">
+        <id column="id" property="id"/>
+        <result column="job_record_uuid" property="jobRecordUuid"/>
+        <result column="caseNum" property="caseNum"/>
+        <result column="successNum" property="successNum"/>
+        <result column="failNum" property="failNum"/>
+        <result column="skipNum" property="skipNum"/>
+        <result column="passRate" property="passRate"/>
+        <result column="modulePath" property="modulePath"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="logPath" property="logPath"/>
+    </resultMap>
+    <!-- 更新super-jacoco-unitTestResult表 -->
+    <insert id="insert">
+        INSERT INTO `super-jacoco-unitTestResult` (
+            `job_record_uuid`,
+            `caseNum`,
+            `successNum`,
+            `failNum`,
+            `skipNum`,
+            `passRate`,
+            `modulePath`,
+            `create_time`,
+            `update_time`,
+            `logPath`
+        ) VALUES (
+                     #{jobRecordUuid},
+                     #{caseNum},
+                     #{successNum},
+                     #{failNum},
+                     #{skipNum},
+                     #{passRate},
+                     #{modulePath},
+                     NOW(),
+                     NOW(),
+                     #{logPath}
+                 )
+    </insert>
+
+    <!-- 对应queryByTestCaseId方法 -->
+    <select id="queryByTestCaseId" resultType="com.xiaoju.basetech.entity.UnitTestResultEntity">
+        SELECT * FROM `super-jacoco-unittestresult` WHERE `job_record_uuid` = #{jobRecordUuid}
+    </select>
+
+</mapper>

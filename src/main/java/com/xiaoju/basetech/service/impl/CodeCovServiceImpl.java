@@ -4,6 +4,7 @@ package com.xiaoju.basetech.service.impl;
 import com.google.common.base.Preconditions;
 import com.xiaoju.basetech.dao.CoverageReportDao;
 import com.xiaoju.basetech.dao.DeployInfoDao;
+import com.xiaoju.basetech.dao.UnitTestResultDao;
 import com.xiaoju.basetech.entity.*;
 import com.xiaoju.basetech.service.CodeCovService;
 import com.xiaoju.basetech.util.*;
@@ -44,11 +45,16 @@ public class CodeCovServiceImpl implements CodeCovService {
     private static final Long CMD_TIMEOUT = 600000L;
     @Value("${whitelist.names}")
     private String[] whiteListNames;
-
+    //单元测试的灰度应用名单
+    @Value("${grayList.names}")
+    private String[] grayListNames;
     @Autowired
     private CoverageReportDao coverageReportDao;
     @Autowired
     private DeployInfoDao deployInfoDao;
+    @Autowired
+    private UnitTestResultDao unitTestResultDao;
+
 
     @Autowired
     private DiffMethodsCalculator diffMethodsCalculator;
@@ -218,6 +224,21 @@ public class CodeCovServiceImpl implements CodeCovService {
             return;
         }
 
+        //这里进行灰度判断操作,灰度名单的生成单元测试报告
+        if (checkGaryList(coverageReport.getGitName())){
+            // 执行单元测试报告生成 mvn surefire-report:report
+            coverageReport.setRequestStatus(Constants.JobStatus.UNITTESTREPORTEXECUTING.val());
+            coverageReportDao.updateCoverageReportByReport(coverageReport);
+            unitTester.executeUnitReport(coverageReport);
+            coverageReportDao.updateCoverageReportByReport(coverageReport);
+            if (coverageReport.getRequestStatus() != Constants.JobStatus.UNITTEST_REPORT_DONE.val()) {
+                log.info("{}计算覆盖率具体步骤...单元测试report失败uuid={}", Thread.currentThread().getName(), coverageReport.getUuid());
+                return;
+            }
+            //整理报告&落库
+            buildUnitTestReport(coverageReport);
+        }
+
         //分析覆盖率报告
         coverageReport.setRequestStatus(Constants.JobStatus.REPORTPARSING.val());
         coverageReportDao.updateCoverageReportByReport(coverageReport);
@@ -241,8 +262,7 @@ public class CodeCovServiceImpl implements CodeCovService {
             coverageReport.setRequestStatus(Constants.JobStatus.SUCCESS.val());
             //这里会删除代码
             FileUtil.cleanDir(new File(coverageReport.getNowLocalPath()).getParent());
-//        } catch (IOException e) {
-        } catch (Exception e) {
+           } catch (IOException e) {
             log.error("uuid={}删除代码失败..", coverageReport.getUuid(), e);
             coverageReport.setRequestStatus(Constants.JobStatus.REMOVE_FILE_FAIL.val());
         }
@@ -250,7 +270,6 @@ public class CodeCovServiceImpl implements CodeCovService {
         log.info("{}计算覆盖率具体步骤...执行完成，耗时{}ms", Thread.currentThread().getName(),
                 System.currentTimeMillis() - s);
         return;
-
     }
 
     @Override
@@ -341,6 +360,18 @@ public class CodeCovServiceImpl implements CodeCovService {
             return;
         }
     }
+
+
+    private Boolean checkGaryList(String gitName) {
+        for (String whiteListName : grayListNames) {
+            if (gitName.contains(whiteListName)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+
 
     /**
      * @param envCoverRequest
@@ -907,7 +938,17 @@ public class CodeCovServiceImpl implements CodeCovService {
         if (coverResult_Diff.getCoverStatus() == 1&&coverResult_Full.getCoverStatus() == 1) {
             log.info("uuid为" + diffUuid + "的报告生成成功，开始发送机器人消息至mr群");
             //构建通知消息
-            String msg = robotUtils.buildSuccessMarkDownMsg(cr_diff,cr_full);
+            //需要加入单元测试结果的通知
+            String msg = "";
+            if (checkGaryList(cr_diff.getGitName())){
+                //先去库里捞数据，并检查一下totalCase数量是不是大于0
+                UnitTestResultEntity u = unitTestResultDao.queryByTestCaseId(cr_diff.getUuid());
+                if (u.getCaseNum()!=0){
+                    msg = robotUtils.buildSuccessMarkDownMsg(cr_diff,cr_full,u);
+                }
+            }else {
+                msg = robotUtils.buildSuccessMarkDownMsg(cr_diff,cr_full);
+            }
 //            String msg = "用户"+userMail+"的mr请求\\n"+url+"\\n单测覆盖率完成\\n"+"\\n增量代码单测的行覆盖率为"+lineCoverage+"；\\n具体报告可见"+reportUrl;
             //先加一个搜索的判断
             //这里需要把判断应用隶属于哪个群组的判断迁移到robotUtils中
@@ -1100,6 +1141,27 @@ public class CodeCovServiceImpl implements CodeCovService {
         return results;
     }
 
+    @Override
+    public UnitTestResultEntity queryResById(String id){
+
+        if (Objects.nonNull(id)){
+            UnitTestResultEntity result = unitTestResultDao.queryByTestCaseId(id);
+            if (Objects.isNull(result)){
+                log.error("查询单元测试结果为null，请检查uuid是否正确，uuid："+id);
+                UnitTestResultEntity res = new UnitTestResultEntity();
+                res.setLogPath("ERROR");
+                return res;
+            }else {
+                return result;
+            }
+        }
+        UnitTestResultEntity res = new UnitTestResultEntity();
+        res.setLogPath("ERROR");
+        return res;
+    }
+
+
+
     /**
      * @Description: 偏移量计算
      * @param: pageNo
@@ -1138,6 +1200,39 @@ public class CodeCovServiceImpl implements CodeCovService {
             log.info(gitUrl+"获取git工程名称失败");
             return null;
         }
+    }
+
+    /**
+     * @Description:
+     * @param:
+     * @return * @return void
+     * @author panpeng
+     * @date 2024/3/5 17:15
+    */
+
+    public void buildUnitTestReport(CoverageReportEntity cr){
+        String path = cr.getNowLocalPath();
+        log.info("获取子模块路径");
+        List<String> localPaths  = MergeUnitReportHtml.getSubModuleSitePaths(path);
+        log.info("复制子模块报告");
+        List<String> newPaths = MergeUnitReportHtml.copyReport(localPaths,cr);
+        log.info("计算单元测试通过率");
+        HashMap<String,String> counts = MergeUnitReportHtml.calculateUnitTestResult(newPaths);
+        log.info("生成子模块的地址");
+        List<String> webPath = MergeUnitReportHtml.buildWebPath(newPaths,cr);
+        //数据库落库
+        UnitTestResultEntity u = new UnitTestResultEntity();
+        u.setJobRecordUuid(cr.getUuid());
+        u.setCaseNum(Integer.parseInt(counts.get("Tests")));
+        u.setSuccessNum(Integer.parseInt(counts.get("Success")));
+        u.setFailNum(Integer.parseInt(counts.get("Errors"))+Integer.parseInt(counts.get("Failures")));
+        u.setSkipNum(Integer.parseInt(counts.get("Skipped")));
+        u.setPassRate(Double.valueOf(counts.get("PassRate")));
+        u.setModulePathList(webPath);
+        //http://127.0.0.1:8899/cov/UnitTestResult?uuid=123
+        u.setLogPath(LocalIpUtils.getTomcatBaseUrl() +"cov/UnitTestResult?uuid="+ cr.getUuid() );
+        unitTestResultDao.insert(u);
+        log.info("单元测试落库+"+u);
     }
 
 }

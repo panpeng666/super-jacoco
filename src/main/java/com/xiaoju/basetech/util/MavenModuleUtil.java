@@ -33,8 +33,9 @@ public class MavenModuleUtil {
         try {
             // 这里需要加上用户中心的判断，把dubbo的路径配置进行修改
             if (checkDubbo(coverageReport.getGitUrl())){
-                changeDubboConfig(coverageReport);
+                changeUserDubboConfig(coverageReport);
             }
+
 
             String pomPath = coverageReport.getNowLocalPath() + "/pom.xml";
             File pomFile = new File(pomPath);
@@ -71,7 +72,23 @@ public class MavenModuleUtil {
 
             }
             String pomStr = sb.toString();
+            //写入maven-surefire-plugin，方便生成单测报告
+            pomStr = pomStr.replace("<build>\n" + "        <plugins>","<build>\n" +
+                    "<plugins>\n" +
+                    "  <plugin>\n" +
+                    "   <groupId>org.apache.maven.plugins</groupId>\n" +
+                    "   <artifactId>maven-surefire-plugin</artifactId>\n" +
+                    "   <version>3.1.2</version>\n" +
+                    "  </plugin>");
             pomStr = pomStr.replace("<modules>", "<modules>\n<module>jacocomodule</module>");
+            //0222增加父pom中新增maven-surefire-plugin配置的代码，实现生成单元测试html报告
+            pomStr = pomStr.replace("<pluginManagement>\n" + "<plugins>","<pluginManagement>\n" +
+                    "<plugins>\n" +
+                    "<plugin>\n" +
+                    "    <groupId>org.apache.maven.plugins</groupId>\n" +
+                    "    <artifactId>maven-surefire-plugin</artifactId>\n" +
+                    "    <version>3.1.2</version> \n" +
+                    "</plugin>");
             FileWriter writer = new FileWriter(pomFile);
             writer.write(pomStr);
             writer.flush();
@@ -98,7 +115,6 @@ public class MavenModuleUtil {
                     "                <groupId>org.jacoco</groupId>\n" +
                     "                <artifactId>jacoco-maven-plugin</artifactId>\n" +
                     "                <version>1.0.2-SNAPSHOT</version>\n" +
-//                    "                <version>0.8.10</version>\n" +
                     "                <executions>\n" +
                     "                    <execution>\n" +
                     "                        <id>report-aggregate</id>\n" +
@@ -152,17 +168,19 @@ public class MavenModuleUtil {
     }
 
     /**
-     * @Description: 修改dubbo配置
+     * @Description: 修改用户中心dubbo配置
      * @param:
      * @return * @return void
      * @author panpeng
      * @date 2023/7/6 16:28
     */
-    private void changeDubboConfig(CoverageReportEntity coverageReport){
+    private void changeUserDubboConfig(CoverageReportEntity coverageReport){
         String path = coverageReport.getNowLocalPath();
         try {
             log.info("开始修改dubbo配置");
             if (coverageReport.getGitUrl().contains("zhipin-cockatiel-user")) {
+                log.info("开始修改zhipin-cockatiel-user  dubbo配置");
+
                 String filePath = path + "/zhipin-cockatiel-user-server/src/main/resources/spring/cockatiel-user-server-provider.xml";
                 String oldLine = "group=\"dubbo/cockatiel\"/>";
                 String newLine = "                    group=\"dubbo/cockatiel_local\"/>";
@@ -172,13 +190,53 @@ public class MavenModuleUtil {
                 replaceFileContent(filePath, oldLine, newLine);
 
             }
-            if (coverageReport.getGitUrl().contains("zhipin-cockatiel-login")) {
+           else if (coverageReport.getGitUrl().contains("zhipin-cockatiel-login")) {
+                log.info("zhipin-cockatiel-login 开始修改dubbo配置");
+
                 String filePath = path + "/login-server-facade-impl/src/main/resources/spring/cockatiel-user-login-provider.xml";
                 String oldLine = "group=\"${dubbo.cockatiel.user.group:dubbo/cockatiel/userLoginRegistry}\"/>";
                 String newLine = "                address=\"${zk_registry}\" group=\"${dubbo.cockatiel.user.group:dubbo/cockatiel/userLoginRegistry_local}\"/>";
                 replaceFileContent(filePath, oldLine, newLine);
                 oldLine = "group=\"dubbo/cockatiel\"/>";
                 newLine = "    <dubbo:registry id=\"cockatielLoginRegistry\" protocol=\"zookeeper\" address=\"${zk_registry}\" group=\"dubbo/cockatiel_local\"/>";
+                replaceFileContent(filePath, oldLine, newLine);
+            }
+
+           else if (coverageReport.getGitUrl().contains("zhipin-cockatiel-open-developer")) {
+                log.info("开始修改zhipin-cockatiel-open-developer dubbo配置");
+                String filePath = path + "/zhipin-cockatiel-opendev-infrastructure/src/main/resources/spring/dubbo-common.xml";
+                String oldLine = "<dubbo:parameter key=\"group\" value=\"cockatiel\"></dubbo:parameter>\n";
+                String newLine = "<dubbo:parameter key=\"group\" value=\"openDevTest\"></dubbo:parameter>\n";
+                replaceFileContent(filePath, oldLine, newLine);
+                oldLine = "group=\"zp_server21\"";
+                newLine = "group=\"openDevTest\"";
+                replaceFileContent(filePath, oldLine, newLine);
+            }
+
+        }catch (Exception e){
+            log.info("修改dubbo配置异常");
+        }
+    }
+
+    /**
+     * @Description: 修改zhipin-cockatiel-open-developer dubbo配置
+     * @param:
+     * @return * @return void
+     * @author panpeng
+     * @date 2023/7/6 16:28
+     */
+    private void changeOpenDubboConfig(CoverageReportEntity coverageReport){
+        String path = coverageReport.getNowLocalPath();
+        try {
+            log.info("开始修改zhipin-cockatiel-open-developer dubbo配置");
+            if (coverageReport.getGitUrl().contains("zhipin-cockatiel-open-developer")) {
+
+                String filePath = path + "/zhipin-cockatiel-opendev-infrastructure/src/main/resources/spring/dubbo-common.xml";
+                String oldLine = "<dubbo:parameter key=\"group\" value=\"cockatiel\"></dubbo:parameter>\n";
+                String newLine = "<dubbo:parameter key=\"group\" value=\"openDevTest\"></dubbo:parameter>\n";
+                replaceFileContent(filePath, oldLine, newLine);
+                oldLine = "group=\"zp_server21\"";
+                newLine = "group=\"openDevTest\"";
                 replaceFileContent(filePath, oldLine, newLine);
             }
         }catch (Exception e){
@@ -431,8 +489,6 @@ public class MavenModuleUtil {
         } else if (version == null) {
             version = moduleInfo.getParentVersion();
         }
-
         return version;
-
     }
 }

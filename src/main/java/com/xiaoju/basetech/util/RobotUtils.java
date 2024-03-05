@@ -1,6 +1,7 @@
 package com.xiaoju.basetech.util;
 
 import com.xiaoju.basetech.entity.CoverageReportEntity;
+import com.xiaoju.basetech.entity.UnitTestResultEntity;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -101,7 +102,7 @@ public class RobotUtils {
     */
     public  String buildSuccessMarkDownMsg(CoverageReportEntity cr_diff,CoverageReportEntity cr_full){
         String user = cr_diff.getMrUserMail();
-        String mrUrl = cr_diff.getGitUrl();
+        String mrUrl = cr_diff.getMrUrl();
         String diff_result = String.valueOf(cr_diff.getBranchCoverage());
         String full_result = String.valueOf(cr_full.getBranchCoverage());
         String diff_reportUrl = cr_diff.getReportUrl();
@@ -114,6 +115,48 @@ public class RobotUtils {
             return "";
         }
         String msg = "**"+gitName+"**工程的**"+commit+"**分支\\n"+"用户**"+user+"**的mr请求\\n[点击查看mr请求详情]("+mrUrl+")\\n单测增量覆盖率完成，结果为"+diff_result+"\\n[点击查看覆盖率报告]("+diff_reportUrl+")\\n单测全量覆盖率完成，结果为"+full_result+"\\n[点击查看覆盖率报告]("+full_reportUrl+")\\n";
+        log.info(msg);
+        return msg;
+    }
+
+/**
+ * @Description:  重写方法，生成带单元测试报告的通知
+ * @param: cr_diff
+ * @param: cr_full
+ * @param: u
+ * @return * @return java.lang.String
+ * @author panpeng
+ * @date 2024/3/5 21:01
+*/
+    public  String buildSuccessMarkDownMsg(CoverageReportEntity cr_diff, CoverageReportEntity cr_full, UnitTestResultEntity u){
+        String user = cr_diff.getMrUserMail();
+        String mrUrl = cr_diff.getMrUrl();
+        String diff_result = String.valueOf(cr_diff.getBranchCoverage());
+        String full_result = String.valueOf(cr_full.getBranchCoverage());
+        String diff_reportUrl = cr_diff.getReportUrl();
+        String full_reportUrl = cr_full.getReportUrl();
+        //新增git工程，commit分支的消息通知
+        String gitName = cr_diff.getGitName();
+        String commit = cr_diff.getNowVersion();
+        if (Objects.isNull(user)||Objects.isNull(mrUrl)||Objects.isNull(diff_result)||Objects.isNull(diff_reportUrl)||Objects.isNull(full_result)||Objects.isNull(full_reportUrl)||Objects.isNull(gitName)||Objects.isNull(commit)){
+            log.error("构建机器人通知markDown文本时异常");
+            return "";
+        }
+
+        String passRate = String.valueOf(u.getPassRate());
+        String logPath = u.getLogPath();
+        if (Objects.isNull(passRate)||Objects.isNull(logPath)){
+            log.error("构建机器人通知markDown文本时单元测试报告异常");
+            return "";
+        }
+
+        String msg = "**"+gitName+"**工程的**"+commit+"**分支\\n"
+                +"用户**"+user+"**的mr请求\\n[点击查看mr请求详情]("+mrUrl+
+                ")\\n单测增量覆盖率完成，结果为"+diff_result+
+                "%\\n[点击查看覆盖率报告]("+diff_reportUrl+
+                ")\\n单测全量覆盖率完成，结果为"+full_result+"%\\n[点击查看覆盖率报告]("+full_reportUrl+")\\n" +
+                "单元测试case执行通过率为"+passRate+"%\\n"+
+                "[点击查看单元测试报告]("+logPath+")\\n";
         log.info(msg);
         return msg;
     }

@@ -23,12 +23,18 @@ public class UnitTester {
     // 单元测试命令设置超时时间1小时
     private static final Long UNITTEST_TIMEOUT = 3600000L;
 
+    /**
+     * @Description: 单元测试执行
+     * @param: coverageReport
+     * @return * @return void
+     * @author panpeng
+     * @date 2024/2/22 17:18
+    */
     public void executeUnitTest(CoverageReportEntity coverageReport) {
 
         log.info("进入UnitTester方法，开始拼接cmd命令");
 
         long startTime = System.currentTimeMillis();
-            //这里加个-X方便查问题，又去掉了
         String unittestCmd = "cd " + coverageReport.getNowLocalPath() + "&&mvn clean";
         if (coverageReport.getEnvType() != null && !coverageReport.getEnvType().equals("")) {
             unittestCmd = unittestCmd + " -P=" + coverageReport.getEnvType();
@@ -41,7 +47,6 @@ public class UnitTester {
         String[] cmd = new String[]{unittestCmd + " -Dmaven.test.skip=false org.jacoco:jacoco-maven-plugin:1.0.2-SNAPSHOT:prepare-agent "
                 + "compile test-compile org.apache.maven.plugins:maven-surefire-plugin:2.22.1:test "
 
-                       // todo  特喵的邮箱的代码在compile下就是不执行test，导致覆盖率一直是0，先写死成test试试
 
 //                       + "test org.apache.maven.plugins:maven-surefire-plugin:2.22.1:test "
                 + "org.apache.maven.plugins:maven-jar-plugin:2.4:jar org.jacoco:jacoco-maven-plugin:1.0.2-SNAPSHOT:report -Dmaven.test.failure.ignore=true -Dfile.encoding=UTF-8 "
@@ -73,6 +78,50 @@ public class UnitTester {
             coverageReport.setRequestStatus(Constants.JobStatus.UNITTEST_FAIL.val());
         } finally {
             log.info("uuid={} 执行单元测试耗时{}ms", coverageReport.getUuid(), (System.currentTimeMillis() - startTime));
+        }
+    }
+    /**
+     * @Description: 执行单元测试报告生成
+     * @param: coverageReport
+     * @return * @return void
+     * @author panpeng
+     * @date 2024/2/22 17:18
+    */
+
+    public void executeUnitReport(CoverageReportEntity coverageReport) {
+
+        log.info("进入UnitReport方法，开始拼接cmd命令");
+
+        long startTime = System.currentTimeMillis();
+        String unittestCmd = "cd " + coverageReport.getNowLocalPath() + "&&mvn surefire-report:report";
+
+        String logFile = LOG_PATH+coverageReport.getUuid()+".log";
+
+        String[] cmd = new String[]{unittestCmd + ">>" + logFile};
+        // 超时时间设置为一小时,
+
+        int exitCode;
+        try {
+            log.info("cmd命令拼接完成，如下：");
+            log.info(Arrays.stream(cmd).toArray().toString());
+            exitCode = CmdExecutor.executeCmd(cmd, UNITTEST_TIMEOUT);
+            log.info("单元测试report执行结果exitCode={} uuid={}", exitCode, coverageReport.getUuid());
+            if (exitCode == 0) {
+                log.info("执行单元测试report成功...");
+                coverageReport.setRequestStatus(Constants.JobStatus.UNITTEST_REPORT_DONE.val());
+            } else {
+                coverageReport.setRequestStatus(Constants.JobStatus.UNITTEST_REPORT_FAIL.val());
+                coverageReport.setErrMsg("执行单元测试report报错");
+            }
+        } catch (TimeoutException e) {
+            coverageReport.setRequestStatus(Constants.JobStatus.TIMEOUT.val());
+            coverageReport.setErrMsg("执行单元测试report超时");
+        } catch (Exception e) {
+            log.error("执行单元测试report异常", e);
+            coverageReport.setErrMsg("执行单元测试report异常:" + e.getMessage());
+            coverageReport.setRequestStatus(Constants.JobStatus.UNITTEST_REPORT_FAIL.val());
+        } finally {
+            log.info("uuid={} 执行单元测试report耗时{}ms", coverageReport.getUuid(), (System.currentTimeMillis() - startTime));
         }
     }
 }

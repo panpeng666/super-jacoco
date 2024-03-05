@@ -113,4 +113,5 @@ public interface CodeCovService {
 
     List<CoverageReportEntity> getResultList(int page,int size);
 
+    UnitTestResultEntity queryResById(String id);
 }

@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>单元测试结果展示</title>
+    <style>
+        table, th, td {
+            border: 1px solid black;
+            border-collapse: collapse;
+            padding: 5px;
+        }
+    </style>
+</head>
+<body>
+
+<h1>单元测试结果</h1>
+<p>总用例数：[[${totalCases}]]</p>
+<p>成功案例数：[[${successes}]]</p>
+<p>失败案例数：[[${failures}]]</p>
+<p>跳过案例数：[[${skips}]]</p>
+<p>通过率：[[${passRate}]]%</p>
+
+
+
+</body>
+</html>

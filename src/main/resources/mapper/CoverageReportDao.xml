@@ -27,8 +27,6 @@
         <result column="mr_url" property="mrUrl"/>
         <result column="mr_userMail" property="mrUserMail"/>
         <result column="is_robotReport" property="isRobotReport"/>
-
-
     </resultMap>
 
     <select id="queryCoverageReportByUuid" parameterType="java.lang.String" resultMap="coverageReportEntity">
