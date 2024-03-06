@@ -19,8 +19,8 @@ public class ReportCopyExecutor {
 
     public void copyReport(CoverageReportEntity coverageReport) {
 
-        //复制report报告
-        String[] cpCmd = new String[]{"cp -rf " + new File(coverageReport.getReportFile()).getParent() + "/ " + REPORT_PATH + coverageReport.getUuid()};
+        //复制report报告，这里修改了一下，加上*，防止把jacoco-aggregate这个文件夹路径复制过去，导致覆盖率报告错误
+        String[] cpCmd = new String[]{"cp -rf " + new File(coverageReport.getReportFile()).getParent() + "/* " + REPORT_PATH + coverageReport.getUuid()};
         int cpExitCode;
         try {
             cpExitCode = CmdExecutor.executeCmd(cpCmd, 600000L);
