@@ -940,9 +940,10 @@ public class CodeCovServiceImpl implements CodeCovService {
             //构建通知消息
             //需要加入单元测试结果的通知
             String msg = "";
-            if (checkGaryList(cr_diff.getGitName())){
+            if (checkGaryList(cr_full.getGitName())){
                 //先去库里捞数据，并检查一下totalCase数量是不是大于0
-                UnitTestResultEntity u = unitTestResultDao.queryByTestCaseId(cr_diff.getUuid());
+                //这里改了一下，因为full的报告更全面，full的报告由diff来触发
+                UnitTestResultEntity u = unitTestResultDao.queryByTestCaseId(cr_full.getUuid());
                 if (u.getCaseNum()!=0){
                     msg = robotUtils.buildSuccessMarkDownMsg(cr_diff,cr_full,u);
                 }
