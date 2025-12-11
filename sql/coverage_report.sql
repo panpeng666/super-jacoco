@@ -58,5 +58,21 @@ CREATE TABLE `super-jacoco-info` (
     KEY `id` (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=0 DEFAULT CHARSET=utf8 COMMENT='服务部署地址';
 
+--创建一个存储单元测试数据库的表
+CREATE TABLE `super-jacoco-unitTestResult` (
+    `id` INT(11) NOT NULL AUTO_INCREMENT COMMENT '主键ID（自增长）',
+    `job_record_uuid` VARCHAR(80) NOT NULL COMMENT '请求唯一标识码',
+    `caseNum` INT NOT NULL COMMENT '测试用例总数',
+    `successNum` INT NOT NULL COMMENT '成功执行的测试用例数',
+    `failNum` INT NOT NULL COMMENT '失败执行的测试用例数',
+    `skipNum` INT NOT NULL COMMENT '跳过的测试用例数',
+    `passRate` DECIMAL(5,2) NOT NULL COMMENT '通过率（百分比）',
+    `modulePath` VARCHAR(255) COMMENT '模块路径',
+    `create_time` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `update_time` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '修改时间',
+    `logPath` VARCHAR(255) COMMENT '日志文件路径',
 
+   PRIMARY KEY (`id`),
+   INDEX idx_job_record_uuid (`job_record_uuid`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Super-Jacoco单元测试结果表';
 
