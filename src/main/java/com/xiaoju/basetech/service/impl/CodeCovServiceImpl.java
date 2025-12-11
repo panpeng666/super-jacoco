@@ -83,7 +83,7 @@ public class CodeCovServiceImpl implements CodeCovService {
     private RobotUtils robotUtils;
 
     //测试机器人地址
-    private String robotUrl = "https://hi-open.zhipin.com/open-apis/bot/hook/49fb1473329546b1a77b3ab731c0b279";
+    private String robotUrl = "https://hi-open.zhipin.com/open-apis/bot/hook/YOUR_TOKEN";
 
     /**
      * 新增单元覆盖率增量覆盖率任务
@@ -845,7 +845,7 @@ public class CodeCovServiceImpl implements CodeCovService {
         }
         //todo gitclone失败的报错先收敛到自己的群机器人观察一下
         if (cr.getRequestStatus() == 202) {
-            robotUtils.robotReport(cr.getUuid() + "的git clone失败，入参为" + cr.getRequestInfo(), "https://hi-open.zhipin.com/open-apis/bot/hook/49fb1473329546b1a77b3ab731c0b279");
+            robotUtils.robotReport(cr.getUuid() + "的git clone失败，入参为" + cr.getRequestInfo(), "https://hi-open.zhipin.com/open-apis/bot/hook/YOUR_TOKEN");
             coverageReportDao.updateReportStatusByUUid(1, uuid);
             return;
         }
@@ -927,7 +927,7 @@ public class CodeCovServiceImpl implements CodeCovService {
         }
         //todo gitclone失败的报错先收敛到自己的群机器人观察一下
         if (cr_diff.getRequestStatus() == 202||cr_full.getRequestStatus() == 202) {
-            robotUtils.robotReport(cr_diff.getUuid() + "的git clone失败，入参为" + cr_diff.getRequestInfo(), "https://hi-open.zhipin.com/open-apis/bot/hook/49fb1473329546b1a77b3ab731c0b279");
+            robotUtils.robotReport(cr_diff.getUuid() + "的git clone失败，入参为" + cr_diff.getRequestInfo(), "https://hi-open.zhipin.com/open-apis/bot/hook/YOUR_TOKEN");
             coverageReportDao.updateReportStatusByUUid(1, diffUuid);
             coverageReportDao.updateReportStatusByUUid(1, fullUuid);
             return;
@@ -1080,7 +1080,7 @@ public class CodeCovServiceImpl implements CodeCovService {
     @Override
     public boolean checkInRule(CoverBaseWithOutUUidRequest coverBaseWithOutUUidRequest) {
         String giturl = coverBaseWithOutUUidRequest.getGitUrl();
-        if (!giturl.contains("git.kanzhun-inc.com/rd21/")) {
+        if (!giturl.contains("git.example.com/rd21/")) {
             log.info("为非后端代码url，不进行增量代码覆盖率检查" + coverBaseWithOutUUidRequest);
             log.info(giturl + "为非后端代码url，不进行增量代码覆盖率检查");
             return false;

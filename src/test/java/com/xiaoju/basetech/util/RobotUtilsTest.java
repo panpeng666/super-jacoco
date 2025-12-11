@@ -39,8 +39,8 @@ public class RobotUtilsTest extends BaseTest {
 //
 //    @Test
 //    public void robotReport() {
-//        String msg = RobotUtils.buildSuccessMarkDownMsg("panpeng@kanzhun.com","https://qe.kanzhun-inc.com/#/performance/report/view/dc3d3575-df0d-4bf5-9a32-913f3328287a","30%","https://qe.kanzhun-inc.com/#/performance/report/view/dc3d3575-df0d-4bf5-9a32-913f3328287a");
-//        RobotUtils.robotReport(msg,"https://hi-open.zhipin.com/open-apis/bot/hook/49fb1473329546b1a77b3ab731c0b279");
+//        String msg = RobotUtils.buildSuccessMarkDownMsg("user@example.com","https://example.com/report","30%","https://example.com/report");
+//        RobotUtils.robotReport(msg,"https://hi-open.zhipin.com/open-apis/bot/hook/YOUR_TOKEN");
 //    }
 //
 //    @Test
